@@ -38,4 +38,15 @@
     <PackageReference Include="System.Text.Json" Version="7.0.2" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <PackageId>FishbowlInventory.LegacyApi</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Josh Kirkpatrick</Authors>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <RepositoryUrl>https://github.com/Kirkpajl/FishbowlInventory.LegacyApi</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Kirkpajl/FishbowlInventory.LegacyApi</PackageProjectUrl>
+    <PackageTags>Fishbowl, Inventory</PackageTags>
+    <Description>A C#/.net client library to interact with the Fishbowl Inventory Legacy API. The client does not fully implement all the API features (just yet) as it is following the needs of another project.</Description>
+  </PropertyGroup>
+
 </Project>
