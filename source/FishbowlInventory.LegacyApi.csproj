@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <RootNamespace>FishbowlInventory</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Serialization\CsvConverterAttribute.cs" />
+    <Compile Remove="Enumerations\FishbowlImportType.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Api\Accounts\" />
+    <Folder Include="Api\Carriers\" />
+    <Folder Include="Api\Customers\" />
+    <Folder Include="Api\Discounts\" />
+    <Folder Include="Api\Integrations\" />
+    <Folder Include="Api\LocationGroups\" />
+    <Folder Include="Api\Locations\" />
+    <Folder Include="Api\ManufactureOrders\" />
+    <Folder Include="Api\Parts\" />
+    <Folder Include="Api\Payment\" />
+    <Folder Include="Api\Picks\" />
+    <Folder Include="Api\Products\" />
+    <Folder Include="Api\PurchaseOrders\" />
+    <Folder Include="Api\Receipts\" />
+    <Folder Include="Api\Reports\" />
+    <Folder Include="Api\Shipments\" />
+    <Folder Include="Api\TaxRates\" />
+    <Folder Include="Api\UnitsOfMeasure\" />
+    <Folder Include="Api\Users\" />
+    <Folder Include="Api\Vendors\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageReference Include="System.Text.Json" Version="7.0.2" />
+  </ItemGroup>
+
+</Project>
