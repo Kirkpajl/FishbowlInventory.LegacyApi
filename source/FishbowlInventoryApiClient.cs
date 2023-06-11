@@ -336,71 +336,6 @@ namespace FishbowlInventory
 
         #endregion Imports/Exports
 
-        #region Integrations
-        /*
-        /// <summary>
-        /// Search for plugin information.
-        /// </summary>
-        /// <param name="plugin">The name of the plugin.</param>
-        /// <param name="authorization">The user specified code for authorization.</param>
-        /// <param name="table">The table name in the database.</param>
-        /// <param name="recordId">The unique identifier for a record in Fishbowl associated with the table.</param>
-        /// <param name="groupId">The user specified identifier used to separate types of plugins you are using.</param>
-        /// <param name="channelId">The unique identifier for the object being linked externally.</param>
-        /// <returns></returns>
-        public Task<PluginInformation[]> SearchPluginInformationAsync(string plugin, string authorization, string table = null, int? recordId = null, 
-            int? groupId = null, string channelId = null, CancellationToken cancellationToken = default)
-        {
-            // Ensure that the required parameters were provided
-            if (string.IsNullOrWhiteSpace(plugin)) throw new ArgumentNullException(nameof(plugin));
-            if (string.IsNullOrWhiteSpace(authorization)) throw new ArgumentNullException(nameof(authorization));
-
-            // Assemble the Request Uri
-            var queryParameters = new Dictionary<string, string>
-            {
-                { "plugin", plugin },
-                { "authorization", authorization }
-            };
-
-            queryParameters.AddParameterIfNotNull("table", table);
-            queryParameters.AddParameterIfNotNull("recordId", recordId);
-            queryParameters.AddParameterIfNotNull("groupId", groupId);
-            queryParameters.AddParameterIfNotNull("channelId", channelId);
-
-            string requestUri = QueryHelpers.AddQueryString("/api/integrations/plugin-info", queryParameters);
-
-            // Process the request
-            return GetAsync<PluginInformation[]>(requestUri, cancellationToken);
-        }
-
-        /// <summary>
-        /// Create a plugin information
-        /// </summary>
-        /// <param name="plugin"></param>
-        /// <returns></returns>
-        public Task<PluginInformation[]> CreatePluginInformationAsync(PluginInformation plugin, CancellationToken cancellationToken = default) 
-            => SendAsync<PluginInformation, PluginInformation[]>("/api/integrations/plugin-info", plugin, cancellationToken);
-
-        /// <summary>
-        /// Update a plugin information
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="plugin"></param>
-        /// <returns></returns>
-        public Task<PluginInformation[]> UpdatePluginInformationAsync(int id, PluginInformation plugin, CancellationToken cancellationToken = default)
-            => SendAsync<PluginInformation, PluginInformation[]>($"/api/integrations/plugin-info/{id}", plugin, cancellationToken);
-
-        /// <summary>
-        /// Deletes the plugin information with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="plugin"></param>
-        /// <returns></returns>
-        public Task DeletePluginInformationAsync(int id, CancellationToken cancellationToken = default) 
-            => DeleteAsync($"/api/integrations/plugin-info/{id}", cancellationToken);
-        */
-        #endregion Integrations
-
         #region Inventory
 
         /// <summary>
@@ -430,326 +365,7 @@ namespace FishbowlInventory
                 TagNumber = tagNumber
             }, cancellationToken);
 
-        /*
-        /// <summary>
-        /// Get all Part Inventory that match the search criteria
-        /// </summary>
-        /// <param name="number">The part number.</param>
-        /// <param name="description">The part description.</param>
-        /// <param name="locationId">The unique identifier for the location.</param>
-        /// <param name="locationGroupId">The unique identifier for the location group.</param>
-        /// <param name="abc">The ABC code for the part.  ('A' | 'B' | 'C')</param>
-        /// <param name="includeZeroQuantities">Indicates whether to include parts with no on hand inventory.</param>
-        /// <param name="active">Indicates whether to only include active (or inactive) parts.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<PartInventory[]> GetInventoryPartsAsync(string number = null, string description = null, int? locationId = null, 
-            int? locationGroupId = null, string abc = null, bool includeZeroQuantities = false, bool? active = true, CancellationToken cancellationToken = default)
-        {
-            // Query Fishbowl to determine how many Inventory Part records meet the criteria
-            var sizeResult = await SearchInventoryPartsAsync(1, 1, number, description, locationId, locationGroupId, abc, includeZeroQuantities, active, cancellationToken);
-            int pageSize = sizeResult.TotalCount;
-
-            // Perform the search
-            var inventoryPartsResult = await SearchInventoryPartsAsync(1, pageSize, number, description, locationId, locationGroupId, abc, includeZeroQuantities, active, cancellationToken);
-
-            // Return the results
-            return inventoryPartsResult.Results;
-        }
-
-        /// <summary>
-        /// Searches for inventory.
-        /// </summary>
-        /// <param name="pageNumber">The current page of the results.</param>
-        /// <param name="pageSize">The number of returned results per page. (Default 100)</param>
-        /// <param name="number">The part number.</param>
-        /// <param name="description">The part description.</param>
-        /// <param name="locationId">The unique identifier for the location.</param>
-        /// <param name="locationGroupId">The unique identifier for the location group.</param>
-        /// <param name="abc">The ABC code for the part.  ('A' | 'B' | 'C')</param>
-        /// <param name="includeZeroQuantities">Indicates whether to include parts with no on hand inventory.</param>
-        /// <param name="active">Indicates whether to only include active (or inactive) parts.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<PagedResultSet<PartInventory>> SearchInventoryPartsAsync(int pageNumber, int pageSize = 100, string number = null, string description = null, 
-            int? locationId = null, int? locationGroupId = null, string abc = null, bool includeZeroQuantities = false, bool? active = true, CancellationToken cancellationToken = default)
-        {
-            // Assemble the Request Uri
-            var queryParameters = new Dictionary<string, string>
-            {
-                { "pageNumber", pageNumber.ToString() },
-                { "pageSize", pageSize.ToString() },
-                { "includeZeroQuantities", includeZeroQuantities.ToString() }
-            };
-
-            queryParameters.AddParameterIfNotNull("number", number);
-            queryParameters.AddParameterIfNotNull("description", description);
-            queryParameters.AddParameterIfNotNull("locationId", locationId);
-            queryParameters.AddParameterIfNotNull("locationGroupId", locationGroupId);
-            queryParameters.AddParameterIfNotNull("abc", abc);
-            queryParameters.AddParameterIfNotNull("active", active);
-
-            //if (number != null) queryParameters.Add("number", number);
-            //if (description != null) queryParameters.Add("description", description);
-            //if (locationId != null) queryParameters.Add("locationId", locationId?.ToString());
-            //if (locationGroupId != null) queryParameters.Add("locationGroupId", locationGroupId?.ToString());
-            //if (abc != null) queryParameters.Add("abc", abc);
-            //if (active != null) queryParameters.Add("active", active?.ToString());
-
-            string requestUri = QueryHelpers.AddQueryString("/api/parts/inventory", queryParameters);
-
-            // Process the request
-            return GetAsync<PagedResultSet<PartInventory>>(requestUri, cancellationToken);  //SearchInventoryResponse
-        }
-                
-        /// <summary>
-        /// Adds inventory.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        public Task AddInventoryAsync(int id, AddInventoryRequest request, CancellationToken cancellationToken = default)
-            => SendAsync($"/api/parts/{id}/inventory/add", request, cancellationToken);
-
-        /// <summary>
-        /// Cycles inventory.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        public Task CycleInventoryAsync(int id, CycleInventoryRequest request, CancellationToken cancellationToken = default)
-            => SendAsync($"/api/parts/{id}/inventory/cycle", request, cancellationToken);
-
-        /// <summary>
-        /// Moves inventory from one location to another.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        public Task MoveInventoryAsync(int id, MoveInventoryRequest request, CancellationToken cancellationToken = default)
-            => SendAsync($"/api/parts/{id}/inventory/move", request, cancellationToken);
-
-        /// <summary>
-        /// Scraps inventory. Parts that have tracking only require the primary tracking value.
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        public Task ScrapInventoryAsync(int id, ScrapInventoryRequest request, CancellationToken cancellationToken = default)
-            => SendAsync($"/api/parts/{id}/inventory/scrap", request, cancellationToken);
-        */
-
         #endregion Inventory
-
-        #region Location Groups
-        /*
-        /// <summary>
-        /// Get all Location Groups that match the search criteria
-        /// </summary>
-        /// <param name="name">The location group name.</param>
-        /// <param name="active">The active status of the location groups.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<LocationGroup[]> GetLocationGroupsAsync(string name = null, bool? active = null, CancellationToken cancellationToken = default)
-        {
-            // Query Fishbowl to determine how many Location Group records meet the criteria
-            var sizeResult = await SearchLocationGroupsAsync(1, 1, name, active, cancellationToken);
-            int pageSize = sizeResult.TotalCount;
-
-            // Perform the search
-            var locationGroupsResult = await SearchLocationGroupsAsync(1, pageSize, name, active, cancellationToken);
-
-            // Return the results
-            return locationGroupsResult.Results;
-        }
-
-        /// <summary>
-        /// Searches for location groups.
-        /// </summary>
-        /// <param name="pageNumber">The current page of the results.</param>
-        /// <param name="pageSize">The number of returned results per page. (Default 100)</param>
-        /// <param name="name">The location group name.</param>
-        /// <param name="active">The active status of the location groups.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<PagedResultSet<LocationGroup>> SearchLocationGroupsAsync(int pageNumber, int pageSize = 100, string name = null, bool? active = null, CancellationToken cancellationToken = default)
-        {
-            // Assemble the Request Uri
-            var queryParameters = new Dictionary<string, string>
-            {
-                { "pageNumber", pageNumber.ToString() },
-                { "pageSize", pageSize.ToString() }
-            };
-
-            queryParameters.AddParameterIfNotNull("name", name);
-            queryParameters.AddParameterIfNotNull("active", active);
-
-            //if (name != null) queryParameters.Add("name", name);
-            //if (active != null) queryParameters.Add("active", active?.ToString());
-
-            string requestUri = QueryHelpers.AddQueryString("/api/location-groups", queryParameters);
-
-            // Process the request
-            return GetAsync<PagedResultSet<LocationGroup>>(requestUri, cancellationToken);  //SearchLocationGroupResponse
-        }
-        */
-        #endregion Location Groups
-
-        #region Manufacture Orders
-        /*
-        /// <summary>
-        /// Get all Manufacture Orders that match the search criteria
-        /// </summary>
-        /// <param name="moNumber ">The manufacture order number.</param>
-        /// <param name="status">The order status.</param>
-        /// <param name="bomNumber ">A BOM number used in a manufacture order.</param>
-        /// <param name="soNumber ">The linked Sales Order number for a manufacture order.</param>
-        /// <param name="assignedUserId">The unique identifier of the user assigned to a manufacture order.</param>
-        /// <param name="locationGroupId">The unique identifier of a manufacture order's location group.</param>
-        /// <param name="woCategory">The work order category name.</param>
-        /// <param name="issuedFrom">The start issued date cutoff for the search.</param>
-        /// <param name="issuedTo">The end issued date cutoff for the search.</param>
-        /// <param name="scheduledFrom">The start scheduled date cutoff for the search.</param>
-        /// <param name="scheduledTo">The end scheduled date cutoff for the search.</param>
-        /// <param name="fulfilledFrom">The start fulfilled date cutoff for the search.</param>
-        /// <param name="fulfilledTo">The end fulfilled date cutoff for the search.</param>
-        /// <param name="containingPartNumber">A part number contained within a manufacture order.</param>
-        /// <param name="containingPartDescription">A part description contained within a manufacture order.</param>
-        /// <param name="containingBomItemType">The type of a BOM item contained in the manufacture order.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<ManufactureOrderSearchResult[]> GetManufactureOrdersAsync(string moNumber = null, ManufactureOrderStatus? status = null,
-            string bomNumber = null, string soNumber = null, int? assignedUserId = null, int? locationGroupId = null, string woCategory = null,
-            DateTime? issuedFrom = null, DateTime? issuedTo = null, DateTime? scheduledFrom = null, DateTime? scheduledTo = null, DateTime? fulfilledFrom = null, 
-            DateTime? fulfilledTo = null, string containingPartNumber = null, string containingPartDescription = null, BillOfMaterialItemType? containingBomItemType = null,
-            CancellationToken cancellationToken = default)
-        {
-            // Query Fishbowl to determine how many Manufacture Order records meet the criteria
-            var sizeResult = await SearchManufactureOrdersAsync(1, 1, moNumber, status, bomNumber, soNumber, assignedUserId, locationGroupId, woCategory, issuedFrom,
-                issuedTo, scheduledFrom, scheduledTo, fulfilledFrom, fulfilledTo, containingPartNumber, containingPartDescription, containingBomItemType, cancellationToken);
-            int pageSize = sizeResult.TotalCount;
-
-            // Perform the search
-            var manufactureOrdersResult = await SearchManufactureOrdersAsync(1, pageSize, moNumber, status, bomNumber, soNumber, assignedUserId, locationGroupId, woCategory, 
-                issuedFrom, issuedTo, scheduledFrom, scheduledTo, fulfilledFrom, fulfilledTo, containingPartNumber, containingPartDescription, containingBomItemType, cancellationToken);
-
-            // Return the results
-            return manufactureOrdersResult.Results;
-        }
-
-        /// <summary>
-        /// Searches for manufacture orders.
-        /// </summary>
-        /// <param name="pageNumber">The current page of the results.</param>
-        /// <param name="pageSize">The number of returned results per page. (Default 100)</param>
-        /// <param name="moNumber ">The manufacture order number.</param>
-        /// <param name="status">The order status.</param>
-        /// <param name="bomNumber ">A BOM number used in a manufacture order.</param>
-        /// <param name="soNumber ">The linked Sales Order number for a manufacture order.</param>
-        /// <param name="assignedUserId">The unique identifier of the user assigned to a manufacture order.</param>
-        /// <param name="locationGroupId">The unique identifier of a manufacture order's location group.</param>
-        /// <param name="woCategory">The work order category name.</param>
-        /// <param name="issuedFrom">The start issued date cutoff for the search.</param>
-        /// <param name="issuedTo">The end issued date cutoff for the search.</param>
-        /// <param name="scheduledFrom">The start scheduled date cutoff for the search.</param>
-        /// <param name="scheduledTo">The end scheduled date cutoff for the search.</param>
-        /// <param name="fulfilledFrom">The start fulfilled date cutoff for the search.</param>
-        /// <param name="fulfilledTo">The end fulfilled date cutoff for the search.</param>
-        /// <param name="containingPartNumber">A part number contained within a manufacture order.</param>
-        /// <param name="containingPartDescription">A part description contained within a manufacture order.</param>
-        /// <param name="containingBomItemType">The type of a BOM item contained in the manufacture order.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<PagedResultSet<ManufactureOrderSearchResult>> SearchManufactureOrdersAsync(int pageNumber, int pageSize = 100, string moNumber  = null, ManufactureOrderStatus? status = null,
-            string bomNumber = null, string soNumber = null, int? assignedUserId = null, int? locationGroupId = null, string woCategory = null, 
-            DateTime? issuedFrom = null, DateTime? issuedTo = null, DateTime? scheduledFrom = null, DateTime? scheduledTo = null, DateTime? fulfilledFrom = null, DateTime? fulfilledTo = null,
-            string containingPartNumber = null, string containingPartDescription = null, BillOfMaterialItemType? containingBomItemType = null,
-            CancellationToken cancellationToken = default)
-        {
-            // Assemble the Request Uri
-            var queryParameters = new Dictionary<string, string>
-            {
-                { "pageNumber", pageNumber.ToString() },
-                { "pageSize", pageSize.ToString() }
-            };
-
-            queryParameters.AddParameterIfNotNull("moNumber", moNumber);
-            queryParameters.AddParameterIfNotNull("status", status);
-            queryParameters.AddParameterIfNotNull("bomNumber", bomNumber);
-            queryParameters.AddParameterIfNotNull("soNumber", soNumber);
-            queryParameters.AddParameterIfNotNull("assignedUserId", assignedUserId);
-            queryParameters.AddParameterIfNotNull("locationGroupId", locationGroupId);
-            queryParameters.AddParameterIfNotNull("woCategory", woCategory);
-            queryParameters.AddParameterIfNotNull("issuedFrom", issuedFrom);
-            queryParameters.AddParameterIfNotNull("issuedTo", issuedTo);
-            queryParameters.AddParameterIfNotNull("scheduledFrom", scheduledFrom);
-            queryParameters.AddParameterIfNotNull("scheduledTo", scheduledTo);
-            queryParameters.AddParameterIfNotNull("fulfilledFrom", fulfilledFrom);
-            queryParameters.AddParameterIfNotNull("fulfilledTo", fulfilledTo);
-            queryParameters.AddParameterIfNotNull("containingPartNumber", containingPartNumber);
-            queryParameters.AddParameterIfNotNull("containingPartDescription", containingPartDescription);
-            queryParameters.AddParameterIfNotNull("containingBomItemType", containingBomItemType);
-
-            string requestUri = QueryHelpers.AddQueryString("/api/manufacture-orders", queryParameters);
-
-            // Process the request
-            return GetAsync<PagedResultSet<ManufactureOrderSearchResult>>(requestUri, cancellationToken);
-        }
-
-        /// <summary>
-        /// Retrieves the details of an existing manufacture order. You only need to provide the unique manufacture order ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<ManufactureOrder> GetManufactureOrderAsync(int id, CancellationToken cancellationToken = default) 
-            => GetAsync<ManufactureOrder>($"/api/manufacture-orders/{id}", cancellationToken);
-
-        /// <summary>
-        /// Create a manufacture order
-        /// </summary>
-        /// <param name="manufactureOrder"></param>
-        /// <returns></returns>
-        public Task<ManufactureOrder> CreateManufactureOrderAsync(ManufactureOrder manufactureOrder, CancellationToken cancellationToken = default) 
-            => SendAsync<ManufactureOrder, ManufactureOrder>("/api/manufacture-orders", manufactureOrder, cancellationToken);
-
-        /// <summary>
-        /// Updates a manufacture order. Configurations will only be updated when the order status is 'Entered'. Manufacture orders linked to sales orders will not have their configurations updated.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="manufactureOrder"></param>
-        /// <returns></returns>
-        public Task<ManufactureOrder> UpdateManufactureOrderAsync(int id, ManufactureOrder manufactureOrder, CancellationToken cancellationToken = default) 
-            => SendAsync<ManufactureOrder, ManufactureOrder>($"/api/manufacture-orders/{id}", manufactureOrder, cancellationToken);
-
-        /// <summary>
-        /// Issues the manufacture order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<ManufactureOrder> IssueManufactureOrderAsync(int id, CancellationToken cancellationToken = default)
-            => SendAsync<ManufactureOrder>($"/api/manufacture-orders/{id}/issue", cancellationToken);
-
-        /// <summary>
-        /// Unissues the manufacture order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<ManufactureOrder> UnissueManufactureOrderAsync(int id, CancellationToken cancellationToken = default)
-            => SendAsync<ManufactureOrder>($"/api/manufacture-orders/{id}/unissue", cancellationToken);
-
-        /// <summary>
-        /// Closes short the manufacture order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<ManufactureOrder> CloseShortManufactureOrderAsync(int id, CancellationToken cancellationToken = default)
-            => SendAsync<ManufactureOrder>($"/api/manufacture-orders/{id}/close-short", cancellationToken);
-
-        /// <summary>
-        /// Deletes the manufacture order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task DeleteManufactureOrderAsync(int id, CancellationToken cancellationToken = default)
-            => DeleteAsync($"/api/manufacture-orders/{id}", cancellationToken);
-        */
-        #endregion Manufacture Orders
 
         #region Memos
 
@@ -777,82 +393,6 @@ namespace FishbowlInventory
                 VendorNumber = vendorNumber,
                 Memo = memo
             }, cancellationToken);
-
-        /*
-        /// <summary>
-        /// Retrieves a list of memos for the specific object.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo[]> GetAllManufactureOrderMemosAsync(int id, CancellationToken cancellationToken = default)
-            => GetAsync<Memo[]>($"/api/manufacture-orders/{id}/memos", cancellationToken);
-
-        /// <summary>
-        /// Retrieves the details of an existing memo. You only need to provide the unique memo ID.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo> GetManufactureOrderMemoAsync(int id, int memoId, CancellationToken cancellationToken = default)
-            => GetAsync<Memo>($"/api/manufacture-orders/{id}/memos/{memoId}", cancellationToken);
-
-        /// <summary>
-        /// Creates a memo.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo> CreateManufactureOrderMemoAsync(int id, Memo memo, CancellationToken cancellationToken = default)
-            => SendAsync<Memo, Memo>($"/api/manufacture-orders/{id}/memos", memo, cancellationToken);
-
-        /// <summary>
-        /// Updates a memo.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo> UpdateManufactureOrderMemoAsync(int id, int memoId, Memo memo, CancellationToken cancellationToken = default)
-            => SendAsync<Memo, Memo>($"/api/manufacture-orders/{id}/memos/{memoId}", memo, cancellationToken);
-
-        /// <summary>
-        /// Deletes the memo with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task DeleteManufactureOrderMemoAsync(int id, int memoId, CancellationToken cancellationToken = default)
-            => DeleteAsync($"/api/manufacture-orders/{id}/memos/{memoId}", cancellationToken);
-
-
-
-        /// <summary>
-        /// Retrieves a list of memos for the specific object.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo[]> GetAllPurchaseOrderMemosAsync(int id, CancellationToken cancellationToken = default)
-            => GetAsync<Memo[]>($"/api/purchase-orders/{id}/memos", cancellationToken);
-
-        /// <summary>
-        /// Retrieves the details of an existing memo. You only need to provide the unique memo ID.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo> GetPurchaseOrderMemoAsync(int id, int memoId, CancellationToken cancellationToken = default)
-            => GetAsync<Memo>($"/api/purchase-orders/{id}/memos/{memoId}", cancellationToken);
-
-        /// <summary>
-        /// Creates a memo.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo> CreatePurchaseOrderMemoAsync(int id, Memo memo, CancellationToken cancellationToken = default)
-            => SendAsync<Memo, Memo>($"/api/purchase-orders/{id}/memos", memo, cancellationToken);
-
-        /// <summary>
-        /// Updates a memo.
-        /// </summary>
-        /// <returns></returns>
-        public Task<Memo> UpdatePurchaseOrderMemoAsync(int id, int memoId, Memo memo, CancellationToken cancellationToken = default)
-            => SendAsync<Memo, Memo>($"/api/manufacture-orders/{id}/memos/{memoId}", memo, cancellationToken);
-
-        /// <summary>
-        /// Deletes the memo with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task DeletePurchaseOrderMemoAsync(int id, int memoId, CancellationToken cancellationToken = default)
-            => DeleteAsync($"/api/purchase-orders/{id}/memos/{memoId}", cancellationToken);
-        */
 
         #endregion Memos
 
@@ -930,7 +470,6 @@ namespace FishbowlInventory
         /// <returns></returns>
         public async Task<Part[]> SearchPartsAsync(string number = null, string vendorName = null, string upc = null, PartType? type = null, string abc = null,
             string details = null, bool? active = null, CancellationToken cancellationToken = default)
-        //bool? hasBom = null, string productNumber = null, string productDescription = null, string vendorPartNumber = null, string vendorName = null
         {
             // Assemble the WHERE statement
             var queryParameters = new Dictionary<string, string>();
@@ -941,11 +480,6 @@ namespace FishbowlInventory
             queryParameters.AddParameterIfNotNull("p.abcCode", abc);
             queryParameters.AddParameterIfNotNull("p.details", details);
             queryParameters.AddParameterIfNotNull("p.activeFlag", active);
-            //queryParameters.AddParameterIfNotNull("hasBom", hasBom);
-            //queryParameters.AddParameterIfNotNull("productNumber", productNumber);
-            //queryParameters.AddParameterIfNotNull("productDescription", productDescription);
-            //queryParameters.AddParameterIfNotNull("vendorPartNumber", vendorPartNumber);
-            //queryParameters.AddParameterIfNotNull("vendorName", vendorName);
 
             string whereConditions = string.Join(" AND ", queryParameters.Select(qp => $"{qp.Key}='{qp.Value}'"));
 
@@ -1031,12 +565,6 @@ namespace FishbowlInventory
         /// <returns></returns>
         public async Task<Part> CreatePartAsync(Part part, CancellationToken cancellationToken = default)
         {
-            // Ensure that the required fields have values
-            //if (part.Status == 0) part.Status = PurchaseOrderStatus.Historical;
-
-            //if (string.IsNullOrWhiteSpace(part.VendorName)) part.VendorName = "[UNIDENTIFIED VENDOR]";
-            //if (string.IsNullOrWhiteSpace(purchaseOrder.VendorContactName)) purchaseOrder.VendorContactName = "[VENDOR CONTACT NAME]";
-
             // Attempt to import the CSV rows into Fishbowl
             await ImportAsync(PART_IMPORT_NAME, ToCsv(part), cancellationToken);
             await ImportAsync(PART_STD_COST_IMPORT_NAME, ToStdCostCsv(part), cancellationToken);            
@@ -1200,74 +728,7 @@ namespace FishbowlInventory
             return lines.ToArray();
         }
 
-
-
-        /*
-        /// <summary>
-        /// Retrieves the best cost for a specific part. The cost will be in the currency of the vendor.
-        /// </summary>
-        /// <param name="id">The unique identifier for the part.</param>
-        /// <param name="vendorId">The unique identifier for the vendor associated with the part.</param>
-        /// <param name="quantity">The part quantity associated with the cost.</param>
-        /// <param name="uomId">The unique identifier for the unit of measure.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<VendorPartCost> GetBestPartCostAsync(int id, int vendorId, double quantity, int uomId, CancellationToken cancellationToken = default)
-        {
-            // Ensure that the parameters are valid
-            if (quantity < 0) throw new ArgumentOutOfRangeException(nameof(quantity), "The quantity must be greater than zero.");
-
-            // Assemble the Request Uri
-            var queryParameters = new Dictionary<string, string>();
-
-            queryParameters.AddParameterIfNotNull("vendorId", vendorId);
-            queryParameters.AddParameterIfNotNull("quantity", quantity);
-            queryParameters.AddParameterIfNotNull("uomId", uomId);
-
-            string requestUri = QueryHelpers.AddQueryString($"/api/parts/{id}/best-cost", queryParameters);
-
-            // Process the request
-            return GetAsync<VendorPartCost>(requestUri, cancellationToken);
-        }
-        */
-
         #endregion Parts
-
-        #region Products
-        /*
-        /// <summary>
-        /// Retrieves the best unit price for the specific product.
-        /// </summary>
-        /// <param name="id">The unique identifier for the product.</param>
-        /// <param name="customerId">The unique identifier for the customer associated with the product.</param>
-        /// <param name="quantity">The product quantity associated with the cost.</param>
-        /// <param name="date">The date on which the best price will be calculated.</param>
-        /// <param name="uomId">The unique identifier for the unit of measure.</param>
-        /// <param name="includePricingRules">Indicates whether the list of pricing rules should be returned.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<GetBestProductPriceResponse> GetBestProductPriceAsync(int id, int customerId, double quantity, DateTime? date = null, int? uomId = null, 
-            bool? includePricingRules = null, CancellationToken cancellationToken = default)
-        {
-            // Ensure that the parameters are valid
-            if (quantity < 0) throw new ArgumentOutOfRangeException(nameof(quantity), "The quantity must be greater than zero.");
-
-            // Assemble the Request Uri
-            var queryParameters = new Dictionary<string, string>();
-
-            queryParameters.AddParameterIfNotNull("customerId", customerId);
-            queryParameters.AddParameterIfNotNull("quantity", quantity);
-            queryParameters.AddParameterIfNotNull("date", date);
-            queryParameters.AddParameterIfNotNull("uomId", uomId);
-            queryParameters.AddParameterIfNotNull("includePricingRules", includePricingRules);
-
-            string requestUri = QueryHelpers.AddQueryString($"/api/products/{id}/best-price", queryParameters);
-
-            // Process the request
-            return GetAsync<GetBestProductPriceResponse>(requestUri, cancellationToken);
-        }
-        */
-        #endregion Products
 
         #region Purchase Orders
 
@@ -1507,7 +968,6 @@ namespace FishbowlInventory
             if (purchaseOrder.Status == 0) purchaseOrder.Status = PurchaseOrderStatus.Historical;
             
             if (string.IsNullOrWhiteSpace(purchaseOrder.VendorName)) purchaseOrder.VendorName = "[UNIDENTIFIED VENDOR]";
-            //if (string.IsNullOrWhiteSpace(purchaseOrder.VendorContactName)) purchaseOrder.VendorContactName = "[VENDOR CONTACT NAME]";
             
             if (string.IsNullOrWhiteSpace(purchaseOrder.RemitToAddress.Name)) purchaseOrder.RemitToAddress.Name = "[REMIT TO NAME]";
             if (string.IsNullOrWhiteSpace(purchaseOrder.RemitToAddress.StreetAddress)) purchaseOrder.RemitToAddress.StreetAddress = "[REMIT TO ADDRESS]";
@@ -1525,16 +985,9 @@ namespace FishbowlInventory
             if (string.IsNullOrWhiteSpace(purchaseOrder.ShipToAddress.Country)) purchaseOrder.ShipToAddress.Country = "USA";
 
             if (string.IsNullOrWhiteSpace(purchaseOrder.CarrierName)) purchaseOrder.CarrierName = "Will Call";
-            //if (string.IsNullOrWhiteSpace(purchaseOrder.CarrierServiceName)) purchaseOrder.CarrierServiceName = "Ground";
-
-            //if (string.IsNullOrWhiteSpace(purchaseOrder.ShippingTermsName)) purchaseOrder.ShippingTermsName = "Prepaid & Billed";
-            //if (string.IsNullOrWhiteSpace(purchaseOrder.PaymentTermsName)) purchaseOrder.PaymentTermsName = "COD";
 
             // Compile the CSV rows for the specified Purchase Order objects
             string[] purchaseOrderLines = ToCsv(purchaseOrder);
-
-            //Debug.WriteLine($"Purchase Order #{purchaseOrder.Number}");
-            //foreach (string line in purchaseOrderLines) Debug.WriteLine(line);
 
             // Attempt to import the CSV rows into Fishbowl
             await ImportAsync(PURCHASEORDER_IMPORT_NAME, purchaseOrderLines, cancellationToken);
@@ -1679,8 +1132,6 @@ namespace FishbowlInventory
         /// <returns></returns>
         private static string ToCsv(PurchaseOrderItem purchaseOrderItem)
         {
-            //"Flag","POItemTypeID","PartNumber","VendorPartNumber","PartQuantity","FulfilledQuantity","PickedQuantity","UOM","PartPrice","FulfillmentDate","LastFulfillmentDate","RevisionLevel","Note","QuickBooksClassName","CustomerJob"
-
             // Build the CSV line for the PO Item
             var csv = new CsvBuilder();
 
@@ -1787,151 +1238,7 @@ namespace FishbowlInventory
                 },
                 cancellationToken);
 
-
-
-        /*
-        /// <summary>
-        /// Issues the purchase order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<PurchaseOrder> IssuePurchaseOrderAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        
-        /// <summary>
-        /// Unissues the purchase order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<PurchaseOrder> UnissuePurchaseOrderAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
-        /// <summary>
-        /// Closes short the purchase order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<PurchaseOrder> CloseShortPurchaseOrderAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
-        /// <summary>
-        /// Close shorts the purchase order item with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="poItemId"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<PurchaseOrder> CloseShortPurchaseOrderItemAsync(int id, int poItemId, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
-        /// <summary>
-        /// Voids the purchase order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<PurchaseOrder> VoidPurchaseOrderAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-
-        /// <summary>
-        /// Deletes the purchase order with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task DeletePurchaseOrderAsync(int id, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-        */
-
         #endregion Sales Orders
-
-        #region Unit of Measure
-        /*
-        /// <summary>
-        /// Get all Units of Measure that match the search criteria
-        /// </summary>
-        /// <param name="name">The UOM name.</param>
-        /// <param name="abbreviation">The UOM abbreviation.</param>
-        /// <param name="description">The UOM description.</param>
-        /// <param name="type">The basic type of the UOM.</param>
-        /// <param name="active">The active status of the UOM.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public async Task<UnitOfMeasure[]> GetUnitOfMeasuresAsync(string name = null, string abbreviation = null, string description = null,
-            UnitOfMeasureType? type = null, bool? active = null, CancellationToken cancellationToken = default)
-        {
-            // Query Fishbowl to determine how many Unit Of Measure records meet the criteria
-            var sizeResult = await SearchUnitOfMeasuresAsync(1, 1, name, abbreviation, description, type, active, cancellationToken);
-            int pageSize = sizeResult.TotalCount;
-
-            // Perform the search
-            var uomResult = await SearchUnitOfMeasuresAsync(1, pageSize, name, abbreviation, description, type, active, cancellationToken);
-
-            // Return the results
-            return uomResult.Results;
-        }
-
-        /// <summary>
-        /// Search for units of measure.
-        /// </summary>
-        /// <param name="pageNumber">The current page of the results.</param>
-        /// <param name="pageSize">The number of returned results per page. (Default 100)</param>
-        /// <param name="name">The UOM name.</param>
-        /// <param name="abbreviation">The UOM abbreviation.</param>
-        /// <param name="description">The UOM description.</param>
-        /// <param name="type">The basic type of the UOM.</param>
-        /// <param name="active">The active status of the UOM.</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        public Task<PagedResultSet<UnitOfMeasure>> SearchUnitOfMeasuresAsync(int pageNumber, int pageSize = 100, string name = null, string abbreviation = null, string description = null, 
-            UnitOfMeasureType? type = null, bool? active = null, CancellationToken cancellationToken = default)
-        {
-            // Assemble the Request Uri
-            var queryParameters = new Dictionary<string, string>
-            {
-                { "pageNumber", pageNumber.ToString() },
-                { "pageSize", pageSize.ToString() }
-            };
-
-            queryParameters.AddParameterIfNotNull("name", name);
-            queryParameters.AddParameterIfNotNull("abbreviation", abbreviation);
-            queryParameters.AddParameterIfNotNull("description", description);
-            queryParameters.AddParameterIfNotNull("type", type);
-            queryParameters.AddParameterIfNotNull("active", active);
-
-            string requestUri = QueryHelpers.AddQueryString("/api/uoms", queryParameters);
-
-            // Process the request
-            return GetAsync<PagedResultSet<UnitOfMeasure>>(requestUri, cancellationToken);  //SearchUnitOfMeasureResponse
-        }
-
-        /// <summary>
-        /// Retrieves the details of a unit of measure. You only need to provide the unique UOM ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task<UnitOfMeasure> GetUnitOfMeasureAsync(int id, CancellationToken cancellationToken = default)
-            => GetAsync<UnitOfMeasure>($"/api/uoms/{id}", cancellationToken);
-
-        /// <summary>
-        /// Create a unit of measure.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="unitOfMeasure"></param>
-        /// <returns></returns>
-        public Task<UnitOfMeasure> CreateUnitOfMeasureAsync(UnitOfMeasure unitOfMeasure, CancellationToken cancellationToken = default)
-            => SendAsync<UnitOfMeasure, UnitOfMeasure>("/api/uoms", unitOfMeasure, cancellationToken);
-
-        /// <summary>
-        /// Update a unit of measure.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <param name="unitOfMeasure"></param>
-        /// <returns></returns>
-        public Task<UnitOfMeasure> UpdateUnitOfMeasureAsync(int id, UnitOfMeasure unitOfMeasure, CancellationToken cancellationToken = default)
-            => SendAsync<UnitOfMeasure, UnitOfMeasure>($"/api/uoms/{id}", unitOfMeasure, cancellationToken);
-
-        /// <summary>
-        /// Deletes the unit of measure with the specified ID.
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        public Task DeleteUnitOfMeasureAsync(int id, CancellationToken cancellationToken = default)
-            => DeleteAsync($"/api/uoms/{id}", cancellationToken);
-        */
-        #endregion Unit of Measure
 
         #region Users
 
@@ -2076,12 +1383,6 @@ namespace FishbowlInventory
         /// <returns></returns>
         public async Task<User> CreateUserAsync(User user, CancellationToken cancellationToken = default)
         {
-            // Ensure that the required fields have values
-            //if (user.Status == 0) user.Status = PurchaseOrderStatus.Historical;
-
-            //if (string.IsNullOrWhiteSpace(user.VendorName)) user.VendorName = "[UNIDENTIFIED VENDOR]";
-            //if (string.IsNullOrWhiteSpace(purchaseOrder.VendorContactName)) purchaseOrder.VendorContactName = "[VENDOR CONTACT NAME]";
-
             // Compile the CSV rows for the specified Purchase Order objects
             string[] userLines = ToCsv(user);
 
@@ -2387,7 +1688,6 @@ namespace FishbowlInventory
                         Status = row.Field<string>("Status"),
                         AccountNumber = row.Field<string>("AccountNumber"),
                         IsActive = isActive,
-                        //MinOrderAmount = row.Field<string>("MinOrderAmount"),
                         Note = row.Field<string>("AlertNotes"),
                         Url = row.Field<string>("Url"),
                         DefaultCarrierService = row.Field<string>("DefaultCarrierService")
@@ -2408,7 +1708,6 @@ namespace FishbowlInventory
                     address = new Address
                     {                        
                         Name = row.Field<string>("AddressName"),
-                        //Name = row.AddressContact,
                         Attention = row.Field<string>("AddressContact"),
                         Type = addressType,
                         IsDefault = isDefault,
@@ -2433,12 +1732,6 @@ namespace FishbowlInventory
                 var otherContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Other, row.Field<string>("Other")); 
                 var webContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Web, row.Field<string>("Web"));
             }
-
-
-            //Name	            AddressName	        AddressContact	AddressType	IsDefault	Address	                    City	    State	Zip	    Country	Residential	Main	                Home	Work	Mobile	Fax	Email	                        Pager	Web	Other	Group	CreditLimit	Status	Active	TaxRate	    Salesman	DefaultPriority	Number	    PaymentTerms	TaxExempt	TaxExemptNumber	URL	CarrierName	CarrierService	ShippingTerms	AlertNotes	QuickBooksClassName	ToBeEmailed	ToBePrinted	IssuableStatus
-            //Copelands, Inc.   Main Address        Copelands, Inc. 50          TRUE        PO Box 787                  Ooltewah    TN      37363           FALSE       (423) 238 - 5621 ext219                             wcopeland@copelandsinc.net                                  0           Normal  TRUE                                            COPELANDS   NET 30          FALSE                                                       Prepaid                     None                TRUE        TRUE
-            //Copelands, Inc.   Billing Address     Copelands, Inc. 20          TRUE        PO Box 787                  Ooltewah    TN      37363           FALSE       (423) 238 - 5621 ext219                             wcopeland@copelandsinc.net                                  0           Normal  TRUE                                            COPELANDS   NET 30          FALSE                                                       Prepaid                     None                TRUE        TRUE
-            //Copelands, Inc.   Shipping Address    Copelands, Inc. 10          TRUE        9616 Ooltewah Industrial Dr Ooltewah    TN      37363           FALSE       (423) 238 - 5621 ext219                             wcopeland@copelandsinc.net                                  0           Normal  TRUE                                            COPELANDS   NET 30          FALSE                                                       Prepaid                     None                TRUE        TRUE
 
             // Return the populated collection
             return vendors.ToArray();
@@ -2489,8 +1782,7 @@ namespace FishbowlInventory
 
             if (includeHeaderRow)
                 lines.Add("Name,AddressName,AddressContact,AddressType,IsDefault,Address,City,State,Zip,Country,Main,Home,Work,Mobile,Fax,Email,Pager,Web,Other,CurrencyName,CurrencyRate,DefaultTerms,DefaultCarrier,DefaultShippingTerms,Status,AccountNumber,Active,MinOrderAmount,AlertNotes,URL,DefaultCarrierService");
-            //lines.Add("Name,AddressName,AddressContact,AddressType,IsDefault,Address,City,State,Zip,Country,Residential,Main,Home,Work,Mobile,Fax,Email,Pager,Web,Other,Group,CreditLimit,Status,Active,TaxRate,Salesman,DefaultPriority,Number,PaymentTerms,TaxExempt,TaxExemptNumber,URL,CarrierName,CarrierService,ShippingTerms,AlertNotes,QuickBooksClassName,ToBeEmailed,ToBePrinted,IssuableStatus");
-
+            
             // Iterate through the Address DTOs
             foreach (var address in vendor.Addresses)
             {
@@ -2518,7 +1810,6 @@ namespace FishbowlInventory
                 csv.Add(address.State);  // State
                 csv.Add(address.PostalCode);  // Zip
                 csv.Add(address.Country);  // Country
-                                           //csv.Add(address.IsResidential.ToString());  // Residential
                 csv.Add(mainContact?.Datum);  // Main
                 csv.Add(homeContact?.Datum);  // Home
                 csv.Add(workContact?.Datum);  // Work
@@ -2547,13 +1838,6 @@ namespace FishbowlInventory
 
             // Return the populated collection
             return lines.ToArray();
-
-
-
-            //Name	            AddressName	        AddressContact	AddressType	IsDefault	Address	                    City	    State	Zip	    Country	Residential	Main	                Home	Work	Mobile	Fax	Email	                        Pager	Web	Other	Group	CreditLimit	Status	Active	TaxRate	    Salesman	DefaultPriority	Number	    PaymentTerms	TaxExempt	TaxExemptNumber	URL	CarrierName	CarrierService	ShippingTerms	AlertNotes	QuickBooksClassName	ToBeEmailed	ToBePrinted	IssuableStatus
-            //Copelands, Inc.   Main Address        Copelands, Inc. 50          TRUE        PO Box 787                  Ooltewah    TN      37363           FALSE       (423) 238 - 5621 ext219                             wcopeland@copelandsinc.net                                  0           Normal  TRUE                                            COPELANDS   NET 30          FALSE                                                       Prepaid                     None                TRUE        TRUE
-            //Copelands, Inc.   Billing Address     Copelands, Inc. 20          TRUE        PO Box 787                  Ooltewah    TN      37363           FALSE       (423) 238 - 5621 ext219                             wcopeland@copelandsinc.net                                  0           Normal  TRUE                                            COPELANDS   NET 30          FALSE                                                       Prepaid                     None                TRUE        TRUE
-            //Copelands, Inc.   Shipping Address    Copelands, Inc. 10          TRUE        9616 Ooltewah Industrial Dr Ooltewah    TN      37363           FALSE       (423) 238 - 5621 ext219                             wcopeland@copelandsinc.net                                  0           Normal  TRUE                                            COPELANDS   NET 30          FALSE                                                       Prepaid                     None                TRUE        TRUE
         }
 
         #endregion Vendors
@@ -2795,25 +2079,15 @@ namespace FishbowlInventory
                 //var workOrder = row.ToObject<WorkOrder>();
 
                 int.TryParse(row.Field<string>("Id"), out int id);
-                //int.TryParse(row.Field<string>("CalCategoryId"), out int calCategoryId);
                 decimal.TryParse(row.Field<string>("Cost"), out decimal cost);
-                //int.TryParse(row.Field<string>("CustomerId"), out int customerId);
-                DateTime? dateCreated = NullableDateTryParse(row.Field<string>("DateCreated"));  //DateTime.TryParse(row.Field<string>("DateCreated"), out DateTime dateCreated);
-                DateTime? dateFinished = NullableDateTryParse(row.Field<string>("DateFinished"));  //DateTime.TryParse(row.Field<string>("DateFinished"), out DateTime dateFinished);
-                DateTime? dateLastModified = NullableDateTryParse(row.Field<string>("DateLastModified"));  //DateTime.TryParse(row.Field<string>("DateLastModified"), out DateTime dateLastModified);
-                DateTime? dateScheduled = NullableDateTryParse(row.Field<string>("DateScheduled"));  //DateTime.TryParse(row.Field<string>("DateScheduled"), out DateTime dateScheduled);
-                //DateTime.TryParse(row.Field<string>("DateScheduledToStart"), out DateTime dateScheduledToStart);
-                DateTime? dateStarted = NullableDateTryParse(row.Field<string>("DateStarted"));  //DateTime.TryParse(row.Field<string>("DateStarted"), out DateTime dateStarted);
-                //int.TryParse(row.Field<string>("LocationGroupId"), out int locationGroupId);
-                //int.TryParse(row.Field<string>("LocationId"), out int locationId);
+                DateTime? dateCreated = NullableDateTryParse(row.Field<string>("DateCreated"));
+                DateTime? dateFinished = NullableDateTryParse(row.Field<string>("DateFinished"));
+                DateTime? dateLastModified = NullableDateTryParse(row.Field<string>("DateLastModified"));
+                DateTime? dateScheduled = NullableDateTryParse(row.Field<string>("DateScheduled"));
+                DateTime? dateStarted = NullableDateTryParse(row.Field<string>("DateStarted"));
                 int.TryParse(row.Field<string>("ManufacturingOrderItemId"), out int moItemId);
-                //int.TryParse(row.Field<string>("PriorityId"), out int priorityId);
-                //int.TryParse(row.Field<string>("QuickBooksClassId"), out int qbClassId);
                 int.TryParse(row.Field<string>("QuantityOrdered"), out int qtyOrdered);
-                //int.TryParse(row.Field<string>("QuantityScrapped"), out int qtyScrapped);
                 int.TryParse(row.Field<string>("QuantityTarget"), out int qtyTarget);
-                //int.TryParse(row.Field<string>("StatusId"), out int statusId);
-                //int.TryParse(row.Field<string>("UserId"), out int userId);
 
                 Enum.TryParse(row.Field<string>("StatusName"), out WorkOrderStatus status);
 
@@ -2830,7 +2104,6 @@ namespace FishbowlInventory
                     Note = row.Field<string>("Note"),
                     Number = row.Field<string>("Number"),
                     QuantityOrdered = qtyOrdered,
-                    //QuantityScrapped = qtyScrapped,
                     QuantityTarget = qtyTarget,                    
                     
                     LocationName = row.Field<string>("LocationName"),
@@ -2872,17 +2145,12 @@ namespace FishbowlInventory
             {
                 int.TryParse(row.Field<string>("Id"), out int id);
                 int.TryParse(row.Field<string>("ManufacturingOrderItemId"), out int moItemId);
-                //int.TryParse(row.Field<string>("PartId"), out int partId);
                 int.TryParse(row.Field<string>("TypeId"), out int typeId);
-                //int.TryParse(row.Field<string>("UomId"), out int uomId);
-                //int.TryParse(row.Field<string>("WorkOrderId"), out int workOrderId);
                 decimal.TryParse(row.Field<string>("Cost"), out decimal cost);
-                //decimal.TryParse(row.Field<string>("StandardCost"), out decimal standardCost);
                 int.TryParse(row.Field<string>("QuantityScrapped"), out int qtyScrapped);
                 int.TryParse(row.Field<string>("QuantityTarget"), out int qtyTarget);
                 int.TryParse(row.Field<string>("QuantityUsed"), out int qtyUsed);
                 int.TryParse(row.Field<string>("SortId"), out int sortId);
-                //bool.TryParse(row.Field<string>("OneTimeItem"), out bool oneTimeItem);
 
                 var item = new WorkOrderItem
                 {
