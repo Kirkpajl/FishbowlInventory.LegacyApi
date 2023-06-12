@@ -7,7 +7,7 @@
 
 ---
 
-<img src="https://github.com/Kirkpajl/FishbowlInventory.LegacyApi/blob/master/fishbowl-logo.png?raw=true" alt="Fishbowl Logo" width="592" height="64">
+![Fishbowl](https://raw.githubusercontent.com/Kirkpajl/FishbowlInventory.LegacyApi/master/fishbowl-logo.png "Fishbowl")
 
 ### Fishbowl Inventory Legacy API implementation in C#.NET
 
