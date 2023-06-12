@@ -1,4 +1,5 @@
-# Fishbowl Inventory Legacy API C# .NET SDK
+![Fishbowl](https://raw.githubusercontent.com/Kirkpajl/FishbowlInventory.LegacyApi/master/fishbowl-logo.png "Fishbowl")
+# Fishbowl Inventory Legacy API implementation in C#.NET
 
 #### IMPORTANT NOTE:
 * I am not actively maintaining this repo project.
@@ -7,13 +8,7 @@
 
 ---
 
-![Fishbowl](https://raw.githubusercontent.com/Kirkpajl/FishbowlInventory.LegacyApi/master/fishbowl-logo.png "Fishbowl")
-
-### Fishbowl Inventory Legacy API implementation in C#.NET
-
----
-
-#### <a name="latest-release"></a>Latest NuGet Release:
+#### Latest NuGet Release:
 This library can be used from NuGet channel:
 
 * [Fishbowl Inventory Legacy API Package](https://www.nuget.org/packages/FishbowlInventory.LegacyApi/) - Version 1.0.0: `Install-Package FishbowlInventory.LegacyApi`
@@ -22,14 +17,14 @@ This library can be used from NuGet channel:
 
 ---
 
-#### <a name="how-to"></a>Documentation:
+#### Documentation:
 For further details on how to use/integrate the FishbowlInventory.LegacyApi package, please refer to the repository wiki page.
 
 [Fishbowl Inventory LEGACY API .NET SDK WIKI](https://github.com/Kirkpajl/FishbowlInventory.LegacyApi/wiki)
 
 ---
 
-#### <a name="issues-bugs"></a>Issue / bug:
+#### Issues / Bugs:
 If you have a query, issues or bugs, it means that you have shown interest in this project, and I thank you for that.
 Feel free to ask, suggest, report issue or post a bug [here](https://github.com/Kirkpajl/FishbowlInventory.LegacyApi/issues) in context of this library use.
 
@@ -39,14 +34,14 @@ You can find all of the methods to connect with me at my [blog](https://joshuaki
 
 ---
 
-#### <a name="references"></a>Reference:
+#### References:
 
 * [Fishbowl Inventory LEGACY API](https://help.fishbowlinventory.com/s/article/Fishbowl-API) - Official documentation
 * [My Blog](https://joshuakirkpatrick.com/) - My personal blog
 
 ---
 
-#### <a name="credits"></a>Credit / disclaimer:
+#### Credits / Disclaimer:
 
 * Fishbowl Advanced logo used in this readme file is owned by and copyright of Fishbowl.
 * I am not affiliated with Fishbowl, this work is solely undertaken by me.
@@ -60,11 +55,3 @@ This work is [licensed](https://github.com/Kirkpajl/FishbowlInventory.LegacyApi/
 
 The MIT License (MIT)
 Copyright (c) 2023 Josh Kirkpatrick
-
-#### Lazy Notes (Internal):
-
-`nuget pack FishbowlInventory.LegacyApi.nuspec -Prop Configuration=Release`
-
-`nuget.exe setApiKey lalalala-lala-lala-lala-lalalalalala`
-
-`nuget.exe push FishbowlInventory.LegacyApi.*.*.*.nupkg -Source https://www.nuget.org/api/v2/package`
