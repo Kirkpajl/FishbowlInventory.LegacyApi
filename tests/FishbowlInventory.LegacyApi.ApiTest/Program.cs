@@ -33,7 +33,7 @@ namespace FishbowlInventory
             Console.WriteLine("-------------------------------------");
             Console.WriteLine("");
 
-            // Initialize the Fishbowl Inventory REST Api client
+            // Initialize the Fishbowl Inventory Legacy Api client
             using var fishbowl = new FishbowlInventoryApiClient(Configuration.HostName, Configuration.Port, Configuration.AppName, Configuration.AppDescription, Configuration.AppId, Configuration.Username, Configuration.Password);
 
             // Terminate the previous Fishbowl session (if token is present), then start a new session
@@ -131,17 +131,17 @@ namespace FishbowlInventory
                 Console.WriteLine("Initializing user session...");
 
                 // Login to the Fishbowl Inventory server
-                var loginUser = await fishbowl.LoginAsync();
+                var userInfo = await fishbowl.LoginAsync();
 
                 // Retain the new session token
                 Configuration.SessionToken = fishbowl.Token;
                 SaveConfig();
 
                 // User details
-                Console.WriteLine($"User Name:  {loginUser.FullName}");
-                Console.WriteLine($"Allowed Modules ({loginUser.AllowedModules?.Length}):");
-                foreach (var module in loginUser.AllowedModules) Console.WriteLine($"  * {module}");
-                Console.WriteLine($"Server Version:  {loginUser.ServerVersion}");
+                Console.WriteLine($"User Name:  {userInfo.FullName}");
+                Console.WriteLine($"Allowed Modules ({userInfo.AllowedModules?.Length}):");
+                foreach (var module in userInfo.AllowedModules) Console.WriteLine($"  * {module}");
+                Console.WriteLine($"Server Version:  {userInfo.ServerVersion}");
                 Console.WriteLine();
 
                 return true;
