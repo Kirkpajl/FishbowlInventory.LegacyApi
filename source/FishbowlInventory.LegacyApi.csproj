@@ -6,11 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Serialization\CsvConverterAttribute.cs" />
-    <Compile Remove="Enumerations\FishbowlImportType.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Api\Accounts\" />
     <Folder Include="Api\Carriers\" />
     <Folder Include="Api\Customers\" />
@@ -40,11 +35,13 @@
 
   <PropertyGroup>
     <PackageId>FishbowlInventory.LegacyApi</PackageId>
-    <Version>1.0.0</Version>
+    <Title>FishbowlInventory.LegacyApi</Title>
+    <Version>1.0.1</Version>
     <Authors>Josh Kirkpatrick</Authors>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <RepositoryUrl>https://github.com/Kirkpajl/FishbowlInventory.LegacyApi</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Kirkpajl/FishbowlInventory.LegacyApi</PackageProjectUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/Kirkpajl/FishbowlInventory.LegacyApi/master/fishbowl-icon.png</PackageIconUrl>
     <PackageTags>Fishbowl, Inventory</PackageTags>
     <Description>A C#/.net client library to interact with the Fishbowl Inventory Legacy API. The client does not fully implement all the API features (just yet) as it is following the needs of another project.</Description>
   </PropertyGroup>
