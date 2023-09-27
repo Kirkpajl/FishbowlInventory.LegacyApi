@@ -47,7 +47,8 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <RepositoryUrl>https://github.com/Kirkpajl/FishbowlInventory.LegacyApi</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Kirkpajl/FishbowlInventory.LegacyApi</PackageProjectUrl>
-    <PackageIcon>https://raw.githubusercontent.com/Kirkpajl/FishbowlInventory.LegacyApi/master/fishbowl-icon.png</PackageIcon>    
+    <PackageIcon>fishbowl-icon.png</PackageIcon>
+    <PackageIconUrl>https://raw.githubusercontent.com/Kirkpajl/FishbowlInventory.LegacyApi/master/fishbowl-icon.png</PackageIconUrl>   
     <PackageTags>Fishbowl, Inventory</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
