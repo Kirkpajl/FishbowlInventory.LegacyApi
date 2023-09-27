@@ -17,7 +17,6 @@ using FishbowlInventory.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -37,7 +36,7 @@ namespace FishbowlInventory
         /// </summary>
         /// <param name="hostname">The DNS name of the remote host to which you intend to connect (i.e., "localhost").</param>
         /// <param name="port">The port number of the remote host to which you intend to connect (i.e., 28192).</param>
-        public FishbowlInventoryApiClient(string hostname, int port, string applicationName = default, string applicationDescription = default, int applicationId = default, 
+        public FishbowlInventoryApiClient(string hostname, int port, string applicationName = default, string applicationDescription = default, int applicationId = default,
             string userName = default, string userPassword = default)
         {
             // Correct any DNS Hostname formatting issues
@@ -84,6 +83,8 @@ namespace FishbowlInventory
         private int _applicationId;
         private int? _userId;
         private readonly object _syncLock = new object();
+
+        private const int MAX_BATCH_SIZE = 100;
 
         #endregion Private Fields
 
@@ -155,8 +156,8 @@ namespace FishbowlInventory
 
         #endregion Public Properties
 
-        
-        
+
+
         #region User Session
 
         public Task<UserInformation> LoginAsync(string appName, string appDescription, int appId, string username, string password, CancellationToken cancellationToken = default)
@@ -174,13 +175,13 @@ namespace FishbowlInventory
 
         public async Task<UserInformation> LoginAsync(CancellationToken cancellationToken = default)
         {
-            var request = new LoginRequest() 
-            { 
-                AppName = _applicationName, 
-                AppDescription = _applicationDescription, 
-                AppId = _applicationId, 
-                Username = _userName, 
-                Password = _userPassword 
+            var request = new LoginRequest()
+            {
+                AppName = _applicationName,
+                AppDescription = _applicationDescription,
+                AppId = _applicationId,
+                Username = _userName,
+                Password = _userPassword
             };
 
             var response = await SendAsync<LoginRequest, LoginResponse>(request, cancellationToken);
@@ -276,8 +277,8 @@ namespace FishbowlInventory
         public async Task<string[]> GetImportHeadersAsync(string type, CancellationToken cancellationToken = default)
         {
             // Send the ImportHeader request
-            var response = await SendAsync<ImportHeaderRequest,ImportHeaderResponse>(
-                new ImportHeaderRequest { Type = type }, 
+            var response = await SendAsync<ImportHeaderRequest, ImportHeaderResponse>(
+                new ImportHeaderRequest { Type = type },
                 cancellationToken);
 
             // Return the Import Names
@@ -305,7 +306,7 @@ namespace FishbowlInventory
                 {
                     cells.Add($"\"{data[row, col]}\"");
                 }
-                csvLines.Add(string.Join(',', cells));                
+                csvLines.Add(string.Join(',', cells));
             }
 
             // Import the CSV data
@@ -322,7 +323,7 @@ namespace FishbowlInventory
         /// <param name="lines"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public Task ImportAsync(string type, string[] csvLines, CancellationToken cancellationToken = default) 
+        public Task ImportAsync(string type, string[] csvLines, CancellationToken cancellationToken = default)
             => SendAsync<ImportRequest, ImportResponse>(
                 new ImportRequest
                 {
@@ -352,7 +353,7 @@ namespace FishbowlInventory
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         public Task AddInventoryAsync(string partNumber, int quantity, int unitOfMeasureId, double cost, string note, Tracking tracking,
-            int locationTagNumber, int tagNumber, CancellationToken cancellationToken = default) 
+            int locationTagNumber, int tagNumber, CancellationToken cancellationToken = default)
             => SendAsync<AddInventoryRequest, AddInventoryResponse>(new AddInventoryRequest
             {
                 PartNumber = partNumber,
@@ -381,7 +382,7 @@ namespace FishbowlInventory
         /// <param name="memo"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public Task AddMemoAsync(FishbowlItemType itemType, string partNumber, string productNumber, string orderNumber, string customerNumber, 
+        public Task AddMemoAsync(FishbowlItemType itemType, string partNumber, string productNumber, string orderNumber, string customerNumber,
             string vendorNumber, Memo memo, CancellationToken cancellationToken = default)
             => SendAsync<AddMemoRequest, AddMemoResponse>(new AddMemoRequest
             {
@@ -426,7 +427,7 @@ namespace FishbowlInventory
             FROM part p
 
             INNER JOIN parttype AS t ON t.id = p.typeId
-            LEFT JOIN partcosthistory AS ch ON ch.partId = p.id
+            LEFT JOIN (select partcosthistory.* from partcosthistory, (select partId,max(dateCaptured) as lastDate from partcosthistory group by partId) AS mostRecent where partcosthistory.partId=mostRecent.partId and partcosthistory.dateCaptured=mostRecent.lastDate) AS ch ON ch.partId = p.id
             INNER JOIN uom AS u ON u.id = p.uomId
             INNER JOIN uom AS uw ON uw.id = p.weightUomId
             INNER JOIN uom AS us ON us.id = p.sizeUomId";
@@ -438,14 +439,32 @@ namespace FishbowlInventory
         /// </summary>
         public async Task<Part[]> GetPartsAsync(PartType? partType = null, CancellationToken cancellationToken = default)
         {
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{PART_SELECT_QUERY} {(partType.HasValue ? $"WHERE p.typeId = '{(int)partType.Value}'" : "")} ORDER BY p.num";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM part {(partType.HasValue ? $"WHERE p.typeId = '{(int)partType.Value}'" : "")}", cancellationToken);
 
-            // Execute the SELECT query
-            var partsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            int offset = 0;
+            var records = new List<Part>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into Part objects
-            return ToParts(partsTable);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{PART_SELECT_QUERY} {(partType.HasValue ? $"WHERE p.typeId = '{(int)partType.Value}'" : "")} ORDER BY p.num LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToParts(recordsTable));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -486,14 +505,32 @@ namespace FishbowlInventory
             // Don't proceed if no search parameters were provided
             if (queryParameters.Count == 0) return await GetPartsAsync();
 
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{PART_SELECT_QUERY} WHERE {whereConditions} ORDER BY p.num";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM part WHERE {whereConditions}", cancellationToken);
 
-            // Execute the SELECT query
-            var partsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            int offset = 0;
+            var parts = new List<Part>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into Part objects
-            return ToParts(partsTable);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{PART_SELECT_QUERY} WHERE {whereConditions} ORDER BY p.num LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var partsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                parts.AddRange(ToParts(partsTable));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return parts.ToArray();
         }
 
         /// <summary>
@@ -542,7 +579,7 @@ namespace FishbowlInventory
                 return await GetPartsAsync();
 
             // Escape any apostrophes in the provided part numbers
-            for (int i=0; i<numbers.Length; i++)
+            for (int i = 0; i < numbers.Length; i++)
             {
                 numbers[i] = numbers[i].Replace("'", "\\'");
             }
@@ -550,7 +587,7 @@ namespace FishbowlInventory
             // Build the MySQL SELECT query
             string numberSet = $"({string.Join(',', numbers.Select(n => $"'{n}'"))})";
             string sqlQuery = $"{PART_SELECT_QUERY} WHERE p.num IN {numberSet}";
-            
+
             // Execute the SELECT query
             var partsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
 
@@ -567,7 +604,7 @@ namespace FishbowlInventory
         {
             // Attempt to import the CSV rows into Fishbowl
             await ImportAsync(PART_IMPORT_NAME, ToCsv(part), cancellationToken);
-            await ImportAsync(PART_STD_COST_IMPORT_NAME, ToStdCostCsv(part), cancellationToken);            
+            await ImportAsync(PART_STD_COST_IMPORT_NAME, ToStdCostCsv(part), cancellationToken);
             if (part.AverageCost > 0) await ImportAsync(PART_AVG_COST_IMPORT_NAME, ToAvgCostCsv(part), cancellationToken);
 
             // Return the new PO record
@@ -813,7 +850,7 @@ namespace FishbowlInventory
             INNER JOIN shipterms AS sterm ON sterm.id = po.shipTermsId
             INNER JOIN potype AS type ON type.id = po.typeId
             INNER JOIN vendor ON vendor.id = po.vendorId";
-        
+
 
 
         /// <summary>
@@ -822,14 +859,33 @@ namespace FishbowlInventory
         /// <returns></returns>
         public async Task<PurchaseOrder[]> GetPurchaseOrdersAsync(bool includeItems = false, CancellationToken cancellationToken = default)
         {
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{PURCHASEORDER_SELECT_QUERY} ORDER BY po.num";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM po", cancellationToken);
 
-            // Execute the SELECT query and cast to object collection
-            var purchaseOrdersTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<PurchaseOrder>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into PurchaseOrder/PurchaseOrderItem objects
-            return ToPurchaseOrders(purchaseOrdersTable, includeItems);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{PURCHASEORDER_SELECT_QUERY} ORDER BY po.num LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToPurchaseOrders(recordsTable, includeItems));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -853,14 +909,33 @@ namespace FishbowlInventory
             // Don't proceed if no search parameters were provided
             if (queryParameters.Count == 0) return await GetPurchaseOrdersAsync();
 
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{PURCHASEORDER_SELECT_QUERY} WHERE {whereConditions} ORDER BY po.num";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM po", cancellationToken);
 
-            // Execute the SELECT query
-            var purchaseOrdersTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<PurchaseOrder>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into Purchase Order objects
-            return ToPurchaseOrders(purchaseOrdersTable, includeItems);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{PURCHASEORDER_SELECT_QUERY} WHERE {whereConditions} ORDER BY po.num LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToPurchaseOrders(recordsTable, includeItems));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -966,9 +1041,9 @@ namespace FishbowlInventory
         {
             // Ensure that the required fields have values
             if (purchaseOrder.Status == 0) purchaseOrder.Status = PurchaseOrderStatus.Historical;
-            
+
             if (string.IsNullOrWhiteSpace(purchaseOrder.VendorName)) purchaseOrder.VendorName = "[UNIDENTIFIED VENDOR]";
-            
+
             if (string.IsNullOrWhiteSpace(purchaseOrder.RemitToAddress.Name)) purchaseOrder.RemitToAddress.Name = "[REMIT TO NAME]";
             if (string.IsNullOrWhiteSpace(purchaseOrder.RemitToAddress.StreetAddress)) purchaseOrder.RemitToAddress.StreetAddress = "[REMIT TO ADDRESS]";
             if (string.IsNullOrWhiteSpace(purchaseOrder.RemitToAddress.City)) purchaseOrder.RemitToAddress.City = "[REMIT TO CITY]";
@@ -1119,7 +1194,7 @@ namespace FishbowlInventory
             if (purchaseOrder.Items != null)
             {
                 foreach (var item in purchaseOrder.Items) lines.Add(ToCsv(item));
-            }            
+            }
 
             // Return the CSV lines
             return lines.ToArray();
@@ -1175,7 +1250,7 @@ namespace FishbowlInventory
 
             // Send the request
             var response = await SendAsync<ExecuteQueryRequest, ExecuteQueryResponse>(
-                new ExecuteQueryRequest { Name = name, Query = sqlQuery }, 
+                new ExecuteQueryRequest { Name = name, Query = sqlQuery },
                 cancellationToken);
 
             // Return the populated DataTable
@@ -1191,7 +1266,7 @@ namespace FishbowlInventory
         /// <param name="sqlQuery"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task<T[]> ExecuteQueryAsync<T>(string name = null, string sqlQuery = null, CancellationToken cancellationToken = default) where T:new()
+        public async Task<T[]> ExecuteQueryAsync<T>(string name = null, string sqlQuery = null, CancellationToken cancellationToken = default) where T : new()
         {
             // Send the request
             var table = await ExecuteQueryAsync(name, sqlQuery, cancellationToken);
@@ -1229,7 +1304,7 @@ namespace FishbowlInventory
         /// <param name="item"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public Task AddSalesOrderItemAsync(string salesOrderNumber, SalesOrderItem item, CancellationToken cancellationToken = default) 
+        public Task AddSalesOrderItemAsync(string salesOrderNumber, SalesOrderItem item, CancellationToken cancellationToken = default)
             => SendAsync<AddSalesOrderItemRequest, AddSalesOrderItemResponse>(
                 new AddSalesOrderItemRequest
                 {
@@ -1279,14 +1354,33 @@ namespace FishbowlInventory
         /// </summary>
         public async Task<User[]> GetUsersAsync(CancellationToken cancellationToken = default)
         {
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{USER_SELECT_QUERY} ORDER BY lastName,firstName";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM sysuser", cancellationToken);
 
-            // Execute the SELECT query
-            var usersTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<User>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into User objects
-            return ToUsers(usersTable);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{USER_SELECT_QUERY} ORDER BY lastName,firstName LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToUsers(recordsTable));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -1315,14 +1409,33 @@ namespace FishbowlInventory
             // Don't proceed if no search parameters were provided
             if (queryParameters.Count == 0) return await GetUsersAsync();
 
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{USER_SELECT_QUERY} WHERE '{whereConditions}' ORDER BY lastName, firstName";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM sysuser WHERE '{whereConditions}'", cancellationToken);
 
-            // Execute the SELECT query
-            var usersTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<User>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into User objects
-            return ToUsers(usersTable);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{USER_SELECT_QUERY} WHERE '{whereConditions}' ORDER BY lastName, firstName LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToUsers(recordsTable));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -1332,14 +1445,33 @@ namespace FishbowlInventory
         /// <returns></returns>
         public async Task<User[]> GetUsersInGroupAsync(string groupName, CancellationToken cancellationToken = default)
         {
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{GROUP_SELECT_QUERY} WHERE grp.name = '{groupName}' ORDER BY user.lastName, user.firstName";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM usergroup AS grp INNER JOIN usergrouprel AS rel ON rel.groupId = grp.id INNER JOIN sysuser AS user ON user.id = rel.userId WHERE grp.name = '{groupName}'", cancellationToken);
 
-            // Execute the SELECT query
-            var usersTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<User>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into User objects
-            return ToUsers(usersTable);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{GROUP_SELECT_QUERY} WHERE grp.name = '{groupName}' ORDER BY user.lastName, user.firstName LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToUsers(recordsTable));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -1537,14 +1669,33 @@ namespace FishbowlInventory
         /// </summary>
         public async Task<Vendor[]> GetVendorsAsync(CancellationToken cancellationToken = default)
         {
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{VENDOR_SELECT_QUERY} GROUP BY addr.id ORDER BY vendor.name";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM vendor", cancellationToken);
 
-            // Execute the SELECT query
-            var vendorsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<Vendor>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into Vendor objects
-            return ToVendors(vendorsTable);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{VENDOR_SELECT_QUERY} GROUP BY addr.id ORDER BY vendor.name LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToVendors(recordsTable));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -1572,16 +1723,35 @@ namespace FishbowlInventory
             if (active.HasValue) filterStatements.Add($"(vendor.activeFlag = {active.Value.ToString().ToUpper()})");
             filterStatements.Add("(addr.defaultFlag = TRUE)");
 
-            string filterQuery = string.Join(" AND ", filterStatements);
+            string whereConditions = string.Join(" AND ", filterStatements);
 
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{VENDOR_SELECT_QUERY} WHERE {filterQuery} GROUP BY addr.id ORDER BY vendor.name";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM vendor", cancellationToken);
 
-            // Execute the SELECT query
-            var vendorTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<Vendor>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into Vendor/Address/Contact objects
-            return ToVendors(vendorTable);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{VENDOR_SELECT_QUERY} WHERE {whereConditions} GROUP BY addr.id ORDER BY vendor.name LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToVendors(recordsTable));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -1701,12 +1871,12 @@ namespace FishbowlInventory
                 if (address == null)
                 {
                     bool.TryParse(row.Field<string>("IsDefault"), out bool isDefault);
-                    
+
                     int.TryParse(row.Field<string>("AddressType"), out int addressTypeVal);
                     AddressType addressType = Enum.IsDefined(typeof(AddressType), addressTypeVal) ? (AddressType)addressTypeVal : AddressType.MainOffice;
-                    
+
                     address = new Address
-                    {                        
+                    {
                         Name = row.Field<string>("AddressName"),
                         Attention = row.Field<string>("AddressContact"),
                         Type = addressType,
@@ -1728,8 +1898,8 @@ namespace FishbowlInventory
                 var faxContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Fax, row.Field<string>("Fax"));
                 var mainContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Main, row.Field<string>("Main"));
                 var emailContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Email, row.Field<string>("Email"));
-                var pagerContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Pager, row.Field<string>("Pager")); 
-                var otherContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Other, row.Field<string>("Other")); 
+                var pagerContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Pager, row.Field<string>("Pager"));
+                var otherContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Other, row.Field<string>("Other"));
                 var webContact = AddUpdateContact(address.Contacts, row.Field<string>("AddressContact"), ContactType.Web, row.Field<string>("Web"));
             }
 
@@ -1782,7 +1952,7 @@ namespace FishbowlInventory
 
             if (includeHeaderRow)
                 lines.Add("Name,AddressName,AddressContact,AddressType,IsDefault,Address,City,State,Zip,Country,Main,Home,Work,Mobile,Fax,Email,Pager,Web,Other,CurrencyName,CurrencyRate,DefaultTerms,DefaultCarrier,DefaultShippingTerms,Status,AccountNumber,Active,MinOrderAmount,AlertNotes,URL,DefaultCarrierService");
-            
+
             // Iterate through the Address DTOs
             foreach (var address in vendor.Addresses)
             {
@@ -1867,15 +2037,15 @@ namespace FishbowlInventory
             wo.qtyScrapped AS QuantityScrapped, 
             wo.qtyTarget AS QuantityTarget,
             wo.statusId AS StatusId, 
-		    wo.userId AS UserId, 
+            wo.userId AS UserId, 
                 
-		    location.name AS LocationName,
-		    lg.name AS LocationGroupName,
+            location.name AS LocationName,
+            lg.name AS LocationGroupName,
             mo.num AS ManufacturingOrderNumber, 
             moitem.description AS Description,
-		    qb.name AS QuickBooksClassName,
-		    stat.name AS StatusName,
-		    user.userName AS UserName
+            qb.name AS QuickBooksClassName,
+            stat.name AS StatusName,
+            user.userName AS UserName
 
             FROM wo
 
@@ -1898,14 +2068,33 @@ namespace FishbowlInventory
         /// <returns></returns>
         public async Task<WorkOrder[]> GetWorkOrdersAsync(bool includeItems = false, CancellationToken cancellationToken = default)
         {
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{WORKORDER_SELECT_QUERY} ORDER BY wo.num";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM wo", cancellationToken);
 
-            // Execute the SELECT query
-            var workOrdersTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<WorkOrder>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into WorkOrder/WorkOrderItem objects
-            return ToWorkOrders(workOrdersTable, includeItems);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{WORKORDER_SELECT_QUERY} ORDER BY wo.num LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToWorkOrders(recordsTable, includeItems));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -1946,14 +2135,33 @@ namespace FishbowlInventory
             // Don't proceed if no search parameters were provided
             if (queryParameters.Count == 0) return await GetWorkOrdersAsync();
 
-            // Build the MySQL SELECT query
-            string sqlQuery = $"{WORKORDER_SELECT_QUERY} WHERE {whereConditions} ORDER BY wo.num";
+            // Get the total number of records matching the search criteria
+            int totalRecordCount = await ExecuteScalarQueryAsync<int>($"SELECT COUNT(*) FROM wo WHERE {whereConditions}", cancellationToken);
 
-            // Execute the SELECT query
-            var workOrdersTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+            // Retrieve the records in batches
+            const int MAX_BATCH_SIZE = 100;
+            int offset = 0;
+            var records = new List<WorkOrder>();
+            while (offset < totalRecordCount)
+            {
+                // Determine how many records to retrieve
+                int batchSize = Math.Min(MAX_BATCH_SIZE, totalRecordCount - offset);
 
-            // Parse the rows into Purchase Order objects
-            return ToWorkOrders(workOrdersTable, includeItems);
+                // Build the MySQL SELECT query
+                string sqlQuery = $"{WORKORDER_SELECT_QUERY} WHERE {whereConditions} ORDER BY wo.num LIMIT {batchSize} OFFSET {offset}";
+
+                // Execute the SELECT query
+                var recordsTable = await ExecuteQueryAsync(sqlQuery: sqlQuery, cancellationToken: cancellationToken);
+
+                // Parse the rows into DTO records
+                records.AddRange(ToWorkOrders(recordsTable, includeItems));
+
+                // Increment the counter
+                offset += batchSize;
+            }
+
+            // Return the collection of records
+            return records.ToArray();
         }
 
         /// <summary>
@@ -2097,15 +2305,15 @@ namespace FishbowlInventory
                     Cost = cost,
                     DateCreated = dateCreated,
                     DateFinished = dateFinished,
-                    DateLastModified = dateLastModified,                    
+                    DateLastModified = dateLastModified,
                     DateScheduled = dateScheduled,
                     DateStarted = dateStarted,
                     ManufacturingOrderItemId = moItemId,
                     Note = row.Field<string>("Note"),
                     Number = row.Field<string>("Number"),
                     QuantityOrdered = qtyOrdered,
-                    QuantityTarget = qtyTarget,                    
-                    
+                    QuantityTarget = qtyTarget,
+
                     LocationName = row.Field<string>("LocationName"),
                     LocationGroupName = row.Field<string>("LocationGroupName"),
                     ManufacturingOrderNumber = row.Field<string>("ManufacturingOrderNumber"),
@@ -2214,7 +2422,7 @@ namespace FishbowlInventory
                 byte[] requestData = Encoding.ASCII.GetBytes(requestJson);
 
                 // Send the serialized Request and wait for a response
-                string responseJson = await Task.Run(() => 
+                string responseJson = await Task.Run(() =>
                 {
                     // Inform the server of the request buffer size
                     bw.Write(requestData.Length);
@@ -2247,7 +2455,7 @@ namespace FishbowlInventory
                 return DeserializeResponse<TRequest, TResponse>(responseJson);
             }
             catch (FishbowlInventoryException ex) { throw ex; }  // If the exception has already been processed/wrapped, return it
-            catch (Exception ex)  { throw new FishbowlInventoryServerException($"An {ex.GetType().Name} occurred while processing the {typeof(TRequest).Name} request.", ex); }  // Encapsulate any non-local exceptions
+            catch (Exception ex) { throw new FishbowlInventoryServerException($"An {ex.GetType().Name} occurred while processing the {typeof(TRequest).Name} request.", ex); }  // Encapsulate any non-local exceptions
         }
 
         private string SerializeRequest<TRequest>(TRequest request) where TRequest : IFishbowlRequest
@@ -2282,7 +2490,7 @@ namespace FishbowlInventory
             }
         }
 
-        private TResponse DeserializeResponse<TRequest,TResponse>(string json)
+        private TResponse DeserializeResponse<TRequest, TResponse>(string json)
             where TRequest : IFishbowlRequest
             where TResponse : IFishbowlResponse<TRequest>, new()
         {
@@ -2462,7 +2670,7 @@ namespace FishbowlInventory
                 2513 => new FishbowlInventoryOperationException("The serial number is not valid." + statusMessage, statusCode, content),
                 2514 => new FishbowlInventoryOperationException("Tracking is not equal." + statusMessage, statusCode, content),
                 2515 => new FishbowlInventoryOperationException("The tracking _________ was not found in location _________' or is committed to another order." + statusMessage, statusCode, content),
-                
+
                 2600 => new FishbowlInventoryOperationException("Location _________ not found." + statusMessage, statusCode, content),
                 2601 => new FishbowlInventoryOperationException("Invalid location." + statusMessage, statusCode, content),
                 2602 => new FishbowlInventoryOperationException("Location group _________ not found." + statusMessage, statusCode, content),
@@ -2471,21 +2679,21 @@ namespace FishbowlInventory
                 2605 => new FishbowlInventoryOperationException("Default location for part _________ not found." + statusMessage, statusCode, content),
                 2606 => new FishbowlInventoryOperationException("_________ is not a pickable location." + statusMessage, statusCode, content),
                 2607 => new FishbowlInventoryOperationException("_________ is not a receivable location." + statusMessage, statusCode, content),
-                
+
                 2700 => new FishbowlInventoryOperationException("Location group not found." + statusMessage, statusCode, content),
                 2701 => new FishbowlInventoryOperationException("Invalid location group." + statusMessage, statusCode, content),
                 2702 => new FishbowlInventoryOperationException("User does not have access to location group _________." + statusMessage, statusCode, content),
-                
+
                 3000 => new FishbowlInventoryOperationException("Customer _________ not found." + statusMessage, statusCode, content),
                 3001 => new FishbowlInventoryOperationException("Customer is invalid." + statusMessage, statusCode, content),
                 3002 => new FishbowlInventoryOperationException("Customer _________ must have a default main office address." + statusMessage, statusCode, content),
-                
+
                 3100 => new FishbowlInventoryOperationException("Vendor _________ not found." + statusMessage, statusCode, content),
                 3101 => new FishbowlInventoryOperationException("Vendor is invalid." + statusMessage, statusCode, content),
-                
+
                 3300 => new FishbowlInventoryOperationException("Address not found" + statusMessage, statusCode, content),
                 3301 => new FishbowlInventoryOperationException("Invalid address" + statusMessage, statusCode, content),
-                
+
                 4000 => new FishbowlInventoryOperationException("There was an error loading PO _________." + statusMessage, statusCode, content),
                 4001 => new FishbowlInventoryOperationException("Unknown status _________." + statusMessage, statusCode, content),
                 4002 => new FishbowlInventoryOperationException("Unknown carrier _________." + statusMessage, statusCode, content),
@@ -2495,7 +2703,7 @@ namespace FishbowlInventory
                 4006 => new FishbowlInventoryOperationException("Cannot create PO with configurable parts: _________." + statusMessage, statusCode, content),
                 4007 => new FishbowlInventoryOperationException("The following parts were not added to the purchase order. They have no default vendor:" + statusMessage, statusCode, content),
                 4008 => new FishbowlInventoryOperationException("Unknown type _________." + statusMessage, statusCode, content),
-                
+
                 4100 => new FishbowlInventoryOperationException("There was an error loading SO _________." + statusMessage, statusCode, content),
                 4101 => new FishbowlInventoryOperationException("Unknown salesman _________." + statusMessage, statusCode, content),
                 4102 => new FishbowlInventoryOperationException("Unknown tax rate _________." + statusMessage, statusCode, content),
@@ -2505,7 +2713,7 @@ namespace FishbowlInventory
                 4106 => new FishbowlInventoryOperationException("Cannot create SO with kit products" + statusMessage, statusCode, content),
                 4107 => new FishbowlInventoryOperationException("A kit item must follow a kit header." + statusMessage, statusCode, content),
                 4108 => new FishbowlInventoryOperationException("Sales order cannot be found." + statusMessage, statusCode, content),
-                
+
                 4200 => new FishbowlInventoryOperationException("There was an error loading BOM _________." + statusMessage, statusCode, content),
                 4201 => new FishbowlInventoryOperationException("Bill of materials cannot be found." + statusMessage, statusCode, content),
                 4202 => new FishbowlInventoryOperationException("Duplicate BOM number _________." + statusMessage, statusCode, content),
@@ -2525,7 +2733,7 @@ namespace FishbowlInventory
                 4222 => new FishbowlInventoryOperationException("Duplicate work order number _________." + statusMessage, statusCode, content),
                 4223 => new FishbowlInventoryOperationException("The work order is not up to date and must be reloaded." + statusMessage, statusCode, content),
                 4224 => new FishbowlInventoryOperationException("Work order was not saved." + statusMessage, statusCode, content),
-                
+
                 4300 => new FishbowlInventoryOperationException("There was an error loading TO _________." + statusMessage, statusCode, content),
                 4301 => new FishbowlInventoryOperationException("Unknown status _________." + statusMessage, statusCode, content),
                 4302 => new FishbowlInventoryOperationException("Unknown carrier _________." + statusMessage, statusCode, content),
@@ -2535,7 +2743,7 @@ namespace FishbowlInventory
                 4306 => new FishbowlInventoryOperationException("Unknown type _________." + statusMessage, statusCode, content),
                 4307 => new FishbowlInventoryOperationException("Transfer order was not saved." + statusMessage, statusCode, content),
                 4308 => new FishbowlInventoryOperationException("The transfer order is not up to date and must be reloaded." + statusMessage, statusCode, content),
-                
+
                 5000 => new FishbowlInventoryOperationException("There was a receiving error." + statusMessage, statusCode, content),
                 5001 => new FishbowlInventoryOperationException("Receive ticket invalid." + statusMessage, statusCode, content),
                 5002 => new FishbowlInventoryOperationException("Could not find a line item for part number _________." + statusMessage, statusCode, content),
@@ -2545,7 +2753,7 @@ namespace FishbowlInventory
                 5006 => new FishbowlInventoryOperationException("A location is required to receive this part. Part num: _________" + statusMessage, statusCode, content),
                 5007 => new FishbowlInventoryOperationException("Cannot receive or reconcile more than the quantity ordered on a TO." + statusMessage, statusCode, content),
                 5008 => new FishbowlInventoryOperationException("Receipt not found _________." + statusMessage, statusCode, content),
-                
+
                 5100 => new FishbowlInventoryOperationException("Pick invalid" + statusMessage, statusCode, content),
                 5101 => new FishbowlInventoryOperationException("Pick not found _________." + statusMessage, statusCode, content),
                 5102 => new FishbowlInventoryOperationException("Pick not saved." + statusMessage, statusCode, content),
@@ -2559,7 +2767,7 @@ namespace FishbowlInventory
                 5110 => new FishbowlInventoryOperationException("Pick items must be started to assign tag." + statusMessage, statusCode, content),
                 5111 => new FishbowlInventoryOperationException("Order must be picked from location group _________." + statusMessage, statusCode, content),
                 5112 => new FishbowlInventoryOperationException("The item must be picked from _________." + statusMessage, statusCode, content),
-                
+
                 5200 => new FishbowlInventoryOperationException("Shipment invalid" + statusMessage, statusCode, content),
                 5201 => new FishbowlInventoryOperationException("Shipment not found _________." + statusMessage, statusCode, content),
                 5202 => new FishbowlInventoryOperationException("Shipment status error" + statusMessage, statusCode, content),
@@ -2568,12 +2776,12 @@ namespace FishbowlInventory
                 5205 => new FishbowlInventoryOperationException("The shipment _________ has already been shipped." + statusMessage, statusCode, content),
                 5206 => new FishbowlInventoryOperationException("Cannot ship order _________. The customer has a ship hold." + statusMessage, statusCode, content),
                 5207 => new FishbowlInventoryOperationException("Cannot ship order _________. The vendor has a ship hold." + statusMessage, statusCode, content),
-                
+
                 5300 => new FishbowlInventoryOperationException("Could not load RMA." + statusMessage, statusCode, content),
                 5301 => new FishbowlInventoryOperationException("Could not find RMA." + statusMessage, statusCode, content),
-                
+
                 5400 => new FishbowlInventoryOperationException("Could not take payment." + statusMessage, statusCode, content),
-                
+
                 5500 => new FishbowlInventoryOperationException("Could not load the calendar." + statusMessage, statusCode, content),
                 5501 => new FishbowlInventoryOperationException("Could not find the calendar." + statusMessage, statusCode, content),
                 5502 => new FishbowlInventoryOperationException("Could not save the calendar." + statusMessage, statusCode, content),
@@ -2582,7 +2790,7 @@ namespace FishbowlInventory
                 5505 => new FishbowlInventoryOperationException("Could not save the calendar activity." + statusMessage, statusCode, content),
                 5506 => new FishbowlInventoryOperationException("Could not delete the calendar activity." + statusMessage, statusCode, content),
                 5507 => new FishbowlInventoryOperationException("The start date must be before the stop date." + statusMessage, statusCode, content),
-                
+
                 6000 => new FishbowlInventoryOperationException("Account invalid" + statusMessage, statusCode, content),
                 6001 => new FishbowlInventoryOperationException("Discount invalid" + statusMessage, statusCode, content),
                 6002 => new FishbowlInventoryOperationException("Tax rate invalid" + statusMessage, statusCode, content),
@@ -2594,13 +2802,13 @@ namespace FishbowlInventory
                 6009 => new FishbowlInventoryOperationException("Fishbowl and Quickbooks multiple currency features don't match" + statusMessage, statusCode, content),
                 6010 => new FishbowlInventoryOperationException("The data validation for the export has failed." + statusMessage, statusCode, content),
                 6011 => new FishbowlInventoryOperationException("Accounting integration is not configured. Please reintegrate." + statusMessage, statusCode, content),
-                
+
                 6100 => new FishbowlInventoryOperationException("Class already exists" + statusMessage, statusCode, content),
-                
+
                 7000 => new FishbowlInventoryOperationException("Pricing rule error" + statusMessage, statusCode, content),
                 7001 => new FishbowlInventoryOperationException("Pricing rule not found" + statusMessage, statusCode, content),
                 7002 => new FishbowlInventoryOperationException("The pricing rule name is not unique" + statusMessage, statusCode, content),
-                
+
                 8000 => new FishbowlInventoryOperationException("Unknown FOB _________." + statusMessage, statusCode, content),
 
                 _ => new FishbowlInventoryOperationException("Unknown exception occurred." + statusMessage, statusCode, content)
