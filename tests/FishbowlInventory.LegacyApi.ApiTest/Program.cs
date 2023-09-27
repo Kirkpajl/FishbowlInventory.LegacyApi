@@ -8,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace FishbowlInventory
@@ -57,11 +56,11 @@ namespace FishbowlInventory
                 //await TestManufactureOrders(fishbowl);
 
                 // Parts
-                //await TestParts(fishbowl);
+                await TestParts(fishbowl);
                 //await TestActiveParts(fishbowl);
 
                 // Purchase Orders
-                //await TestPurchaseOrders(fishbowl);
+                await TestPurchaseOrders(fishbowl);
                 //await TestOpenPurchaseOrders(fishbowl);
                 //await TestCreatePurchaseOrder(fishbowl);
                 //await TestPurchaseOrderNumbers(fishbowl);
@@ -70,16 +69,16 @@ namespace FishbowlInventory
                 //await TestUnitsOfMeasure(fishbowl);
 
                 // Users
-                //await TestUsers(fishbowl);
+                await TestUsers(fishbowl);
                 //await TestUserGroups(fishbowl);
 
                 // Vendors
-                //await TestVendors(fishbowl);
+                await TestVendors(fishbowl);
                 //await TestActiveVendors(fishbowl);
-                await TestCreateVendor(fishbowl);
+                //await TestCreateVendor(fishbowl);
 
                 // Work Orders
-                //await TestWorkOrders(fishbowl);
+                await TestWorkOrders(fishbowl);
                 //await TestOpenWorkOrders(fishbowl);
 
                 // Terminate the Fishbowl API session
@@ -90,7 +89,7 @@ namespace FishbowlInventory
             else
             {
                 Console.WriteLine("Unable to authenticate with Fishbowl. All tests have been cancelled.  Press any key to exit...");
-            }            
+            }
 
             // Pause execution
             Console.ReadKey();
@@ -287,7 +286,7 @@ namespace FishbowlInventory
                 Console.WriteLine($"Parts ({parts.Length}):");
                 foreach (var part in parts)
                 {
-                    Console.WriteLine($"  [{part.Id}]:  {part.Number} - {part.Description}");
+                    Console.WriteLine($"  [{part.Id}]:  {part.Number} - {part.Description} - {part.AverageCost:c}");
                 }
                 Console.WriteLine("");
             }
@@ -296,7 +295,7 @@ namespace FishbowlInventory
                 OutputException(ex, $"An {ex.GetType().Name} occurred while testing the Parts Api!");
             }
         }
-       
+
         [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
         private static async Task TestActiveParts(FishbowlInventoryApiClient fishbowl)
@@ -311,11 +310,11 @@ namespace FishbowlInventory
 
                 // Download the new Fishbowl parts
                 var parts = await fishbowl.GetPartsByNumbersAsync(firstNumbersBatch);
-                
+
                 Console.WriteLine($"Parts ({parts.Length}):");
                 foreach (var part in parts)
                 {
-                    Console.WriteLine($"  [{part.Id}]:  {part.Number} - {part.Description}");
+                    Console.WriteLine($"  [{part.Id}]:  {part.Number} - {part.Description} - {part.AverageCost:c}");
                 }
                 Console.WriteLine("");
             }

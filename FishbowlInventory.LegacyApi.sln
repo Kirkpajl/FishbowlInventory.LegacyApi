@@ -9,7 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "source", "source", "{F4D72F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E54E069D-61DA-45D9-BC09-F446E496F8A4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FishbowlInventory.LegacyApi.ApiTest", "tests\FishbowlInventory.LegacyApi.ApiTest\FishbowlInventory.LegacyApi.ApiTest.csproj", "{CB6F54D3-1CAE-4053-B9CC-A321CBD6BC0B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ApiTest", "tests\FishbowlInventory.LegacyApi.ApiTest\ApiTest.csproj", "{CB6F54D3-1CAE-4053-B9CC-A321CBD6BC0B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
