@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FishbowlInventory.Serialization;
-using System.Threading.Tasks;
+﻿using FishbowlInventory.Serialization;
+using System;
 
 namespace FishbowlInventory.Models
 {
@@ -55,7 +51,7 @@ namespace FishbowlInventory.Models
         public int ReceiptId { get; set; }
 
         [CsvPropertyName("quantity")]
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
 
         [CsvPropertyName("uomName")]
         public string UnitOfMeasureName { get; set; }
@@ -67,13 +63,13 @@ namespace FishbowlInventory.Models
         public int SuggestedLocationId { get; set; }
 
         [CsvPropertyName("originalUnitCost")]
-        public int OriginalUnitCost { get; set; }
+        public decimal OriginalUnitCost { get; set; }
 
         [CsvPropertyName("billedUnitCost")]
-        public int BilledUnitCost { get; set; }
+        public decimal BilledUnitCost { get; set; }
 
         [CsvPropertyName("landedUnitCost")]
-        public int LandedUnitCost { get; set; }
+        public decimal LandedUnitCost { get; set; }
 
         [CsvPropertyName("deliverTo ")]
         public string DeliverTo { get; set; }

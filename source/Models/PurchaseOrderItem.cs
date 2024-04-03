@@ -76,19 +76,19 @@ namespace FishbowlInventory.Models
         /// The quantity to be fulfilled.
         /// </summary>
         [CsvPropertyName("PartQuantity")]
-        public int QuantityToFulfill { get; set; }
+        public decimal QuantityToFulfill { get; set; }
 
         /// <summary>
         /// The quantity already fulfilled.
         /// </summary>
         [CsvPropertyName("FulfilledQuantity")]
-        public int QuantityFulfilled { get; set; }
+        public decimal QuantityFulfilled { get; set; }
 
         /// <summary>
         /// The quantity already picked.
         /// </summary>
         [CsvPropertyName("PickedQuantity")]
-        public int QuantityPicked { get; set; }
+        public decimal QuantityPicked { get; set; }
 
         /// <summary>
         /// The unit cost of the part.

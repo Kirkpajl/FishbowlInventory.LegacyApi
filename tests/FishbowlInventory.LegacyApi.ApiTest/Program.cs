@@ -56,12 +56,12 @@ namespace FishbowlInventory
                 //await TestManufactureOrders(fishbowl);
 
                 // Parts
-                await TestParts(fishbowl);
+                //await TestParts(fishbowl);
                 //await TestActiveParts(fishbowl);
 
                 // Purchase Orders
-                await TestPurchaseOrders(fishbowl);
-                //await TestOpenPurchaseOrders(fishbowl);
+                //await TestPurchaseOrders(fishbowl);
+                await TestOpenPurchaseOrders(fishbowl);
                 //await TestCreatePurchaseOrder(fishbowl);
                 //await TestPurchaseOrderNumbers(fishbowl);
 
@@ -69,16 +69,16 @@ namespace FishbowlInventory
                 //await TestUnitsOfMeasure(fishbowl);
 
                 // Users
-                await TestUsers(fishbowl);
+                //await TestUsers(fishbowl);
                 //await TestUserGroups(fishbowl);
 
                 // Vendors
-                await TestVendors(fishbowl);
+                //await TestVendors(fishbowl);
                 //await TestActiveVendors(fishbowl);
                 //await TestCreateVendor(fishbowl);
 
                 // Work Orders
-                await TestWorkOrders(fishbowl);
+                //await TestWorkOrders(fishbowl);
                 //await TestOpenWorkOrders(fishbowl);
 
                 // Terminate the Fishbowl API session
@@ -332,7 +332,7 @@ namespace FishbowlInventory
             {
                 Console.WriteLine($"Testing Purchase Order api...");
 
-                var purchaseOrders = await fishbowl.GetPurchaseOrdersAsync();
+                var purchaseOrders = await fishbowl.GetPurchaseOrdersAsync(includeItems: false);
 
                 Console.WriteLine($"Purchase Orders ({purchaseOrders.Length}):");
                 foreach (var purchaseOrder in purchaseOrders)
@@ -340,6 +340,11 @@ namespace FishbowlInventory
                     bool incompleteItems = purchaseOrder.Items.Any(i => string.IsNullOrWhiteSpace(i.PartNumber) || string.IsNullOrWhiteSpace(i.Description));
 
                     Console.WriteLine($"  [{purchaseOrder.Id}]:  {purchaseOrder.Number} - {purchaseOrder.VendorName} - {purchaseOrder.Items.Length:N0} items - Incomplete Items: {incompleteItems}");
+
+                    foreach (var item in purchaseOrder.Items)
+                    {
+                        Console.WriteLine($"          - ({item.QuantityToFulfill}) {item.Description} - {item.TotalCost:c}");
+                    }
                 }
                 Console.WriteLine("");
             }
@@ -357,7 +362,7 @@ namespace FishbowlInventory
             {
                 Console.WriteLine($"Testing Open Purchase Order api...");
 
-                var purchaseOrders = await fishbowl.GetOpenPurchaseOrdersAsync();
+                var purchaseOrders = await fishbowl.GetOpenPurchaseOrdersAsync(includeItems: true);
 
                 Console.WriteLine($"Open Purchase Orders ({purchaseOrders.Length}):");
                 foreach (var purchaseOrder in purchaseOrders)
@@ -365,6 +370,11 @@ namespace FishbowlInventory
                     bool incompleteItems = purchaseOrder.Items.Any(i => string.IsNullOrWhiteSpace(i.PartNumber) || string.IsNullOrWhiteSpace(i.Description));
 
                     Console.WriteLine($"  [{purchaseOrder.Id}]:  {purchaseOrder.Number} - {purchaseOrder.VendorName} - {purchaseOrder.Items.Length:N0} items - Incomplete Items: {incompleteItems}");
+
+                    foreach (var item in purchaseOrder.Items)
+                    {
+                        Console.WriteLine($"          - ({item.QuantityToFulfill}) {item.Description} - {item.TotalCost:c}");
+                    }
                 }
                 Console.WriteLine("");
             }

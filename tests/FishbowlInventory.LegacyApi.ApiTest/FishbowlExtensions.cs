@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -59,18 +58,18 @@ namespace FishbowlInventory
             // Extract the first column values from the datatable
             return dt.AsEnumerable().Select(r => r.Field<string>("num")).ToArray();
         }
-     
+
         /// <summary>
         /// Return all open Purchase Orders in Fishbowl
         /// </summary>
         /// <returns></returns>
-        public static async Task<PurchaseOrder[]> GetOpenPurchaseOrdersAsync(this FishbowlInventoryApiClient client, CancellationToken token = default)
+        public static async Task<PurchaseOrder[]> GetOpenPurchaseOrdersAsync(this FishbowlInventoryApiClient client, bool includeItems = false, CancellationToken token = default)
         {
-            var bidPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.BidRequest, cancellationToken: token);
-            var issuedPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Issued, cancellationToken: token);
-            var pickingPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Picking, cancellationToken: token);
-            var partialPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Partial, cancellationToken: token);
-            var pickedPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Picked, cancellationToken: token);
+            var bidPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.BidRequest, includeItems: includeItems, cancellationToken: token);
+            var issuedPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Issued, includeItems: includeItems, cancellationToken: token);
+            var pickingPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Picking, includeItems: includeItems, cancellationToken: token);
+            var partialPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Partial, includeItems: includeItems, cancellationToken: token);
+            var pickedPurchaseOrders = await client.SearchPurchaseOrdersAsync(status: PurchaseOrderStatus.Picked, includeItems: includeItems, cancellationToken: token);
 
             return bidPurchaseOrders
                 .Union(issuedPurchaseOrders)

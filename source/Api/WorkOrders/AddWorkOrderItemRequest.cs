@@ -31,7 +31,7 @@ namespace FishbowlInventory.Api.WorkOrders
         public string PartNumber { get; set; }
 
         [JsonPropertyName("Quantity")]
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
 
         [JsonPropertyName("UOMCode")]
         public string UnitOfMeasureCode { get; set; }

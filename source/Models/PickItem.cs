@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FishbowlInventory.Serialization;
-using System.Threading.Tasks;
+﻿using FishbowlInventory.Serialization;
 
 namespace FishbowlInventory.Models
 {
@@ -25,7 +20,7 @@ namespace FishbowlInventory.Models
         public Tag Tag { get; set; }
 
         [CsvPropertyName("quantity")]
-        public int Quantity { get; set; }
+        public decimal Quantity { get; set; }
 
         [CsvPropertyName("uom")]
         public UnitOfMeasure UnitOfMeasure { get; set; }
