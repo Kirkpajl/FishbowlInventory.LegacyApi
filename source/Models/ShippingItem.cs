@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using FishbowlInventory.Serialization;
-using System.Threading.Tasks;
+﻿using FishbowlInventory.Serialization;
 
 namespace FishbowlInventory.Models
 {
@@ -19,13 +14,13 @@ namespace FishbowlInventory.Models
         public string ProductDescription { get; set; }
 
         [CsvPropertyName("qtyShipped")]
-        public int QuantityShipped { get; set; }
+        public decimal QuantityShipped { get; set; }
 
         [CsvPropertyName("uom")]
         public UnitOfMeasure UnitOfMeasure { get; set; }
 
         [CsvPropertyName("cost")]
-        public int Cost { get; set; }
+        public decimal Cost { get; set; }
 
         [CsvPropertyName("sku")]
         public string SKU { get; set; }
