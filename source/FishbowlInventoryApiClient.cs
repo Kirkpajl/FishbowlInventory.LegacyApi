@@ -1023,7 +1023,7 @@ namespace FishbowlInventory
                 INNER JOIN poitemtype AS type ON type.id = poitem.typeId
                 INNER JOIN poitemstatus AS status ON status.id = poitem.statusId
                 LEFT JOIN qbclass AS qb ON qb.id = poitem.qbClassId
-                INNER JOIN taxrate ON taxrate.id = poitem.taxId
+                LEFT JOIN taxrate ON taxrate.id = poitem.taxId
                 LEFT JOIN uom ON uom.id = poitem.uomId
 
                 WHERE po.num = '{poNumber}'";
