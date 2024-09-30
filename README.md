@@ -9,7 +9,7 @@
 ## Latest NuGet Release:
 This library can be used from NuGet channel:
 
-* [Fishbowl Inventory Legacy API Package](https://www.nuget.org/packages/FishbowlInventory.LegacyApi/) - Version 1.0.4: `Install-Package FishbowlInventory.LegacyApi`
+* [Fishbowl Inventory Legacy API Package](https://www.nuget.org/packages/FishbowlInventory.LegacyApi/) - Version 1.0.5: `Install-Package FishbowlInventory.LegacyApi`
 
 **Please note:** This source and nuget are a work-in-progress.  Not all API methods/calls have been included/tested.
 
@@ -65,4 +65,4 @@ You can find all of the methods to connect with me at my [blog](https://joshuaki
 This work is [licensed](https://github.com/Kirkpajl/FishbowlInventory.LegacyApi/blob/master/LICENSE) under:
 
 The MIT License (MIT)
-Copyright (c) 2023 Josh Kirkpatrick
+Copyright (c) 2024 Josh Kirkpatrick
