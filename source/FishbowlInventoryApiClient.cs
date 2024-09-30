@@ -673,13 +673,23 @@ namespace FishbowlInventory
         /// <returns></returns>
         private static string[] ToCsv(Part part)
         {
-            // Initialize CSV line collection
-            var lines = new List<string>
+            // Build CSV header line
+            var headerNames = new List<string>(new []{ "\"PartNumber\"", "\"PartDescription\"", "\"PartDetails\"", "\"UOM\"", "\"UPC\"", "\"PartType\"", "\"Active\"", "\"ABCCode\"", "\"Weight\"", "\"WeightUOM\"", "\"Width\"", "\"Height\"", "\"Length\"", "\"SizeUOM\"", "\"PrimaryTracking\"", "\"AlertNote\"", "\"PictureUrl\"" });
+
+            foreach (var track in part.Tracks)
             {
-                "\"PartNumber\",\"PartDescription\",\"PartDetails\",\"UOM\",\"UPC\",\"PartType\",\"Active\",\"ABCCode\",\"Weight\",\"WeightUOM\",\"Width\",\"Height\",\"Length\",\"SizeUOM\",\"PrimaryTracking\",\"AlertNote\",\"PictureUrl\""
-            };
-            foreach (var track in part.Tracks) lines.Add($"\"Tracks-{track.Name}\"");  // "Tracks-Lot Number", \"Tracks-Revision Level\",\"Tracks-Expiration Date\",\"Tracks-Serial Number\",\"Tracks-Heat Number\",
-            foreach (var field in part.CustomFields) lines.Add($"\"CF-{field.Name}\"");  // \"CF-Heat #\""
+                headerNames.Add($"\"Tracks-{track.Name}\"");  // "Tracks-Lot Number", \"Tracks-Revision Level\",\"Tracks-Expiration Date\",\"Tracks-Serial Number\",\"Tracks-Heat Number\",
+                headerNames.Add($"\"Next Value-{track.Name}\"");  // "Next Value Number", \"Next Value-Revision Level\",\"Next Value-Expiration Date\",\"Next Value-Serial Number\",\"Next Value-Heat Number\",
+            }
+            foreach (var field in part.CustomFields)
+            {
+                headerNames.Add($"\"CF-{field.Name}\"");
+            }
+
+            var headerLine = string.Join(',', headerNames);
+
+            // Initialize CSV line collection
+            var lines = new List<string> { headerLine };
 
             // Append the CSV line for the Part
             var csv = new CsvBuilder();
@@ -1211,7 +1221,7 @@ namespace FishbowlInventory
             var csv = new CsvBuilder();
 
             csv.Add("Item");  // "Flag"
-            csv.Add(purchaseOrderItem.Type.GetDisplayName());  // "POItemTypeID"
+            csv.Add(((int)purchaseOrderItem.Type).ToString());  // "POItemTypeID"
             csv.Add(purchaseOrderItem.PartNumber);  // "PartNumber"
             csv.Add(purchaseOrderItem.VendorPartNumber);  // "VendorPartNumber"
             csv.Add(purchaseOrderItem.QuantityToFulfill.ToString());  // "PartQuantity"
@@ -1945,13 +1955,13 @@ namespace FishbowlInventory
         /// </summary>
         /// <param name="vendors"></param>
         /// <returns></returns>
-        private string[] ToCsv(Vendor vendor, bool includeHeaderRow = true)
+        private string[] ToCsv(Vendor vendor)
         {
-            // Initialize CSV lines collection
-            var lines = new List<string>();
-
-            if (includeHeaderRow)
-                lines.Add("Name,AddressName,AddressContact,AddressType,IsDefault,Address,City,State,Zip,Country,Main,Home,Work,Mobile,Fax,Email,Pager,Web,Other,CurrencyName,CurrencyRate,DefaultTerms,DefaultCarrier,DefaultShippingTerms,Status,AccountNumber,Active,MinOrderAmount,AlertNotes,URL,DefaultCarrierService");
+            // Initialize CSV line collection
+            var lines = new List<string>
+            {
+                "\"Name\",\"AddressName\",\"AddressContact\",\"AddressType\",\"IsDefault\",\"Address\",\"City\",\"State\",\"Zip\",\"Country\",\"Main\",\"Home\",\"Work\",\"Mobile\",\"Fax\",\"Email\",\"Pager\",\"Web\",\"Other\",\"CurrencyName\",\"CurrencyRate\",\"DefaultTerms\",\"DefaultCarrier\",\"DefaultShippingTerms\",\"Status\",\"AccountNumber\",\"Active\",\"MinOrderAmount\",\"AlertNotes\",\"URL\",\"DefaultCarrierService\""
+            };
 
             // Iterate through the Address DTOs
             foreach (var address in vendor.Addresses)
