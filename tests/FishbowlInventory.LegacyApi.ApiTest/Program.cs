@@ -61,8 +61,8 @@ namespace FishbowlInventory
 
                 // Purchase Orders
                 //await TestPurchaseOrders(fishbowl);
-                await TestOpenPurchaseOrders(fishbowl);
-                //await TestCreatePurchaseOrder(fishbowl);
+                //await TestOpenPurchaseOrders(fishbowl);
+                await TestCreatePurchaseOrder(fishbowl);
                 //await TestPurchaseOrderNumbers(fishbowl);
 
                 // Units of Measure
@@ -395,7 +395,11 @@ namespace FishbowlInventory
                 var purchaseOrder = new PurchaseOrder
                 {
                     Number = "BR549",
-                    Status = PurchaseOrderStatus.BidRequest
+                    Status = PurchaseOrderStatus.BidRequest,
+                    Items = new []
+                    {
+                        new PurchaseOrderItem { Type = PurchaseOrderItemType.MiscPurchase, PartNumber = "BR549-A", VendorPartNumber = "BR549-A", QuantityToFulfill = 1, UnitOfMeasure = "EA", UnitCost = 10 }
+                    }
                 };
 
                 var result = await fishbowl.CreatePurchaseOrderAsync(purchaseOrder);
@@ -673,6 +677,7 @@ namespace FishbowlInventory
             new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile("appsettings.json", true, true)
+            .AddUserSecrets<Program>()
             .Build()
             .Get<ApplicationConfig>();
 
