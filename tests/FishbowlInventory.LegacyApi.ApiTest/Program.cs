@@ -396,9 +396,23 @@ namespace FishbowlInventory
                 {
                     Number = "BR549",
                     Status = PurchaseOrderStatus.BidRequest,
+                    DateScheduled = DateTime.Today.AddDays(1),
                     Items = new []
                     {
-                        new PurchaseOrderItem { Type = PurchaseOrderItemType.MiscPurchase, PartNumber = "BR549-A", VendorPartNumber = "BR549-A", QuantityToFulfill = 1, UnitOfMeasure = "EA", UnitCost = 10 }
+                        new PurchaseOrderItem 
+                        { 
+                            Type = PurchaseOrderItemType.MiscPurchase,
+                            LineNumber = 1,
+                            Description = "Test Part",
+                            PartNumber = "BR549-A", 
+                            VendorPartNumber = "BR549-A", 
+                            Status = PurchaseOrderItemStatus.Entered,
+                            QuantityToFulfill = 1, 
+                            UnitOfMeasure = "EA", 
+                            UnitCost = 10,
+                            DateScheduled = DateTime.Today.AddDays(1),
+                            Note = "Notes go here"
+                        }
                     }
                 };
 
